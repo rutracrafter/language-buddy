@@ -73,11 +73,11 @@ Each phase starts only when the previous gate passes. No dates are set yet; Phas
 
 ### Phase 4 — Placement
 
-- [ ] Placement system instruction following the OPI phases: self-report, warm-up, level checks, probes, wind-down
-- [ ] Task ladder per CEFR level (A1 to C1) in the instruction
-- [ ] Agent tool `log_level_signal(level, sustained | breakdown)`
-- [ ] Analyst variant that outputs a CEFR level, confidence, and starter items
-- [ ] Confidence rises over the first three practice sessions; level can adjust
+- [x] Placement system instruction following the OPI phases: self-report, warm-up, level checks, probes, wind-down
+- [x] Task ladder per CEFR level (A1 to C1) in the instruction
+- [x] Agent tool `log_level_signal(level, sustained | breakdown)`
+- [x] Analyst variant that outputs a CEFR level, confidence, and starter items
+- [x] Confidence rises over the first three practice sessions; level can adjust
 
 **Gate:** testers of known levels are placed within one CEFR level of their real level.
 

@@ -21,6 +21,7 @@ export interface LiveTranscriptItem {
 }
 
 export interface StartSessionOptions {
+  type?: 'placement' | 'practice';
   targetMinutes?: number;
   nativeLanguage?: string;
   targetLanguage?: string;
@@ -29,6 +30,7 @@ export interface StartSessionOptions {
 
 export function useGeminiLive() {
   const [status, setStatus] = useState<LiveSessionStatus>('idle');
+  const [sessionType, setSessionType] = useState<'placement' | 'practice'>('practice');
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -152,11 +154,14 @@ export function useGeminiLive() {
       setTargetMinutes(options.targetMinutes || 10);
 
       try {
+        setSessionType(options.type || 'practice');
+
         // Step 1: Request session and ephemeral token from our backend API
         const tokenRes = await fetch('/api/sessions/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            type: options.type || 'practice',
             targetMinutes: options.targetMinutes || 10,
             nativeLanguage: options.nativeLanguage,
             targetLanguage: options.targetLanguage,
@@ -228,6 +233,24 @@ export function useGeminiLive() {
             tools: [
               {
                 functionDeclarations: [
+                  {
+                    name: 'log_level_signal',
+                    description:
+                      'Log when the learner demonstrates sustained proficiency or a linguistic breakdown at a CEFR level.',
+                    parameters: {
+                      type: Type.OBJECT,
+                      properties: {
+                        level: { type: Type.STRING, enum: ['A1', 'A2', 'B1', 'B2', 'C1'] },
+                        status: {
+                          type: Type.STRING,
+                          enum: ['sustained', 'breakdown'],
+                          description: 'sustained (comfortable) or breakdown (struggled/failed)',
+                        },
+                        evidence: { type: Type.STRING, description: 'Quote or description of performance' },
+                      },
+                      required: ['level', 'status'],
+                    },
+                  },
                   {
                     name: 'log_item_event',
                     description:
@@ -476,6 +499,7 @@ export function useGeminiLive() {
 
   return {
     status,
+    sessionType,
     error,
     sessionId,
     isMuted,
@@ -491,6 +515,7 @@ export function useGeminiLive() {
     resetSession: () => {
       cleanupAudio();
       setStatus('idle');
+      setSessionType('practice');
       setError(null);
       setTranscript([]);
       setSessionAnalysis(null);

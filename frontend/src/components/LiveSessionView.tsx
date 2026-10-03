@@ -14,11 +14,13 @@ import {
   BookOpen,
   TrendingUp,
   Target,
+  Award,
 } from 'lucide-react';
 import { LiveTranscriptItem, LiveSessionStatus } from '../hooks/useGeminiLive.js';
 
 interface LiveSessionViewProps {
   status: LiveSessionStatus;
+  sessionType?: 'placement' | 'practice';
   error: string | null;
   isMuted: boolean;
   micVolume: number;
@@ -38,6 +40,7 @@ interface LiveSessionViewProps {
 
 export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
   status,
+  sessionType = 'practice',
   error,
   isMuted,
   micVolume,
@@ -70,18 +73,47 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
   const progressPercent = Math.min(100, (elapsedSeconds / (targetMinutes * 60)) * 100);
 
   if (status === 'finished') {
+    const isPlacement = sessionType === 'placement';
+
     return (
       <div className="max-w-3xl mx-auto px-4 py-8">
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
           <div className="text-center mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/10">
-              <CheckCircle className="w-7 h-7" />
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg ${
+              isPlacement
+                ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-amber-500/10'
+                : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-emerald-500/10'
+            }`}>
+              {isPlacement ? <Award className="w-7 h-7" /> : <CheckCircle className="w-7 h-7" />}
             </div>
-            <h2 className="text-2xl font-bold text-white">Session Completed!</h2>
+            <h2 className="text-2xl font-bold text-white">
+              {isPlacement ? 'Placement Assessment Complete!' : 'Practice Session Complete!'}
+            </h2>
             <p className="text-slate-400 text-xs sm:text-sm mt-1">
-              Spoken practice in <strong className="text-emerald-400">{targetLanguage}</strong> has been analyzed and saved to your memory history.
+              {isPlacement
+                ? `Your spoken proficiency in ${targetLanguage} was evaluated across ACTFL task levels.`
+                : `Spoken practice in ${targetLanguage} has been analyzed and saved to your memory history.`}
             </p>
           </div>
+
+          {/* Placement Specific Results Banner */}
+          {isPlacement && sessionAnalysis?.level && (
+            <div className="bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-teal-500/10 border border-amber-500/30 rounded-2xl p-5 mb-6 text-center">
+              <div className="text-xs uppercase tracking-wider text-amber-400 font-bold mb-1">
+                Assigned Proficiency Level
+              </div>
+              <div className="text-4xl font-extrabold text-white">
+                CEFR {sessionAnalysis.level.overall}
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                Speaking: <strong className="text-emerald-400">{sessionAnalysis.level.speaking}</strong> • Listening: <strong className="text-emerald-400">{sessionAnalysis.level.listening}</strong> • Confidence: <strong className="text-slate-200">{Math.round((sessionAnalysis.levelConfidence || 0.65) * 100)}%</strong>
+              </div>
+              <div className="flex justify-center gap-6 mt-4 pt-3 border-t border-slate-800/80 text-xs text-slate-300">
+                <div>Floor Level: <strong className="text-emerald-400">{sessionAnalysis.floorLevel}</strong></div>
+                <div>Ceiling Level: <strong className="text-rose-400">{sessionAnalysis.ceilingLevel}</strong></div>
+              </div>
+            </div>
+          )}
 
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
@@ -98,9 +130,13 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
               </div>
             </div>
             <div className="col-span-2 sm:col-span-1 bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-left">
-              <div className="text-[11px] text-slate-500 font-medium">Items Evaluated</div>
+              <div className="text-[11px] text-slate-500 font-medium">
+                {isPlacement ? 'Starter Items' : 'Items Evaluated'}
+              </div>
               <div className="text-lg font-bold text-sky-400 mt-0.5">
-                {sessionAnalysis?.itemsReviewed?.length || 0} reviewed
+                {isPlacement
+                  ? `${sessionAnalysis?.starterItems?.length || 0} unlocked`
+                  : `${sessionAnalysis?.itemsReviewed?.length || 0} reviewed`}
               </div>
             </div>
           </div>

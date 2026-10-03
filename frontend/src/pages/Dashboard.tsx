@@ -192,10 +192,21 @@ export const Dashboard: React.FC = () => {
 
   const handleStartSession = () => {
     liveSession.startSession({
+      type: 'practice',
       targetMinutes: sessionMinutes,
       nativeLanguage,
       targetLanguage,
       topic: requestedTopic.trim() || undefined,
+    });
+  };
+
+  const handleStartPlacement = () => {
+    liveSession.startSession({
+      type: 'placement',
+      targetMinutes: 8,
+      nativeLanguage,
+      targetLanguage,
+      topic: 'ACTFL Oral Proficiency Placement Interview',
     });
   };
 
@@ -212,6 +223,7 @@ export const Dashboard: React.FC = () => {
     return (
       <LiveSessionView
         status={liveSession.status}
+        sessionType={liveSession.sessionType}
         error={liveSession.error}
         isMuted={liveSession.isMuted}
         micVolume={liveSession.micVolume}
@@ -223,7 +235,11 @@ export const Dashboard: React.FC = () => {
         nativeLanguage={nativeLanguage}
         targetLanguage={targetLanguage}
         cefrLevel={currentLevel}
-        topic={requestedTopic || 'Everyday conversation & vocabulary practice'}
+        topic={
+          liveSession.sessionType === 'placement'
+            ? 'ACTFL Oral Proficiency Placement Interview'
+            : requestedTopic || 'Everyday conversation & vocabulary practice'
+        }
         onToggleMute={liveSession.toggleMute}
         onStopSession={liveSession.stopSession}
         onReturnToDashboard={handleReturnToDashboard}
@@ -270,6 +286,15 @@ export const Dashboard: React.FC = () => {
                 ({Math.round((profile?.levelConfidence ?? 0.1) * 100)}% conf)
               </span>
             </div>
+            {profile?.placementCompletedAt && (
+              <button
+                type="button"
+                onClick={handleStartPlacement}
+                className="text-[11px] text-amber-400 hover:text-amber-300 transition-colors block mt-0.5 cursor-pointer"
+              >
+                ↻ Retake Placement Interview
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -278,6 +303,32 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
         {/* Left 2 Cols: Session Launcher, Language Picker, History */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Placement Interview Banner if not yet completed */}
+          {!profile?.placementCompletedAt && (
+            <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-slate-900 border border-amber-500/30 rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 mb-1.5">
+                  <Award className="w-3 h-3 mr-1" />
+                  Recommended Starting Step
+                </span>
+                <h4 className="text-base font-bold text-white">
+                  Take the 8-Minute Oral Placement Interview
+                </h4>
+                <p className="text-xs text-slate-300 mt-1 max-w-md">
+                  An adaptive OPI-style conversation that checks your floor and ceiling levels to accurately calibrate your CEFR level in {targetLanguage}.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleStartPlacement}
+                className="flex-shrink-0 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+              >
+                Start Placement Interview
+              </button>
+            </div>
+          )}
+
           {/* Start Session Card */}
           <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border border-emerald-500/30 rounded-2xl p-6 sm:p-8 shadow-xl">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

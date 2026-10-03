@@ -7,12 +7,14 @@ import { requireAuth } from '../middleware/auth.js';
 import { Session, TranscriptLine } from '../types.js';
 import { generateSessionPlan } from '../services/planner.js';
 import { runAnalyst } from '../services/analyst.js';
+import { buildPlacementSystemInstruction, runPlacementAnalyst } from '../services/placement.js';
 
 export const sessionsRouter = Router();
 
 sessionsRouter.use(requireAuth);
 
 const startSessionSchema = z.object({
+  type: z.enum(['placement', 'practice']).optional().default('practice'),
   targetMinutes: z.number().min(1).max(30).optional().default(10),
   nativeLanguage: z.string().trim().min(1).optional(),
   targetLanguage: z.string().trim().min(1).optional(),
@@ -48,17 +50,50 @@ sessionsRouter.post('/start', async (req: Request, res: Response) => {
       return;
     }
 
-    const { targetMinutes, topic: requestedTopic, nativeLanguage, targetLanguage } =
+    const { type, targetMinutes, topic: requestedTopic, nativeLanguage, targetLanguage } =
       parseResult.data;
     const collections = getCollections();
 
-    // 1. Run the AI Planner to produce a customized session plan & system instruction
-    const plan = await generateSessionPlan(req.userId!, {
-      targetMinutes,
-      nativeLanguage,
-      targetLanguage,
-      requestedTopic,
-    });
+    const profile = await collections.profiles.findOne({ userId: req.userId! });
+    const userNative = nativeLanguage || profile?.nativeLanguage || 'English';
+    const userTarget = targetLanguage || profile?.targetLanguage || 'Spanish';
+    const cefrLevel = profile?.level?.overall || 'A1';
+
+    let systemInstruction = '';
+    let planData: Record<string, unknown> = {};
+    let sessionTopic = requestedTopic || 'Everyday conversation';
+
+    if (type === 'placement') {
+      systemInstruction = buildPlacementSystemInstruction(userNative, userTarget, cefrLevel);
+      sessionTopic = 'ACTFL OPI Oral Proficiency Placement Interview';
+      planData = {
+        type: 'placement',
+        topic: sessionTopic,
+        cefrLevel,
+        systemInstruction,
+      };
+    } else {
+      // 1. Run the AI Planner to produce a customized session plan & system instruction
+      const plan = await generateSessionPlan(req.userId!, {
+        targetMinutes,
+        nativeLanguage: userNative,
+        targetLanguage: userTarget,
+        requestedTopic,
+      });
+
+      systemInstruction = plan.systemInstruction;
+      sessionTopic = plan.topic;
+      planData = {
+        type: 'practice',
+        topic: plan.topic,
+        goal: plan.goal,
+        cefrLevel: plan.cefrLevel,
+        dueItemsToWeave: plan.dueItemsToWeave,
+        newItemsToIntroduce: plan.newItemsToIntroduce,
+        errorPatternsToAddress: plan.errorPatternsToAddress,
+        systemInstruction: plan.systemInstruction,
+      };
+    }
 
     const client = getGenAIClient();
     const expireTime = new Date(Date.now() + 45 * 60 * 1000).toISOString();
@@ -80,22 +115,14 @@ sessionsRouter.post('/start', async (req: Request, res: Response) => {
     const now = new Date();
     const sessionDoc: Session = {
       userId: req.userId!,
-      type: 'practice',
+      type,
       languages: {
-        native: nativeLanguage || 'English',
-        target: targetLanguage || 'Spanish',
+        native: userNative,
+        target: userTarget,
       },
-      targetMinutes,
+      targetMinutes: type === 'placement' ? 8 : targetMinutes,
       startedAt: now,
-      plan: {
-        topic: plan.topic,
-        goal: plan.goal,
-        cefrLevel: plan.cefrLevel,
-        dueItemsToWeave: plan.dueItemsToWeave,
-        newItemsToIntroduce: plan.newItemsToIntroduce,
-        errorPatternsToAddress: plan.errorPatternsToAddress,
-        systemInstruction: plan.systemInstruction,
-      },
+      plan: planData,
       transcript: [],
       toolEvents: [],
       analysisStatus: 'pending',
@@ -107,17 +134,13 @@ sessionsRouter.post('/start', async (req: Request, res: Response) => {
       sessionId: sessionResult.insertedId.toHexString(),
       token: authToken.name,
       model: 'gemini-3.8-live',
-      systemInstruction: plan.systemInstruction,
-      targetMinutes,
+      systemInstruction,
+      targetMinutes: sessionDoc.targetMinutes,
       languages: sessionDoc.languages,
-      level: plan.cefrLevel,
-      topic: plan.topic,
-      plan: {
-        goal: plan.goal,
-        dueItemsToWeave: plan.dueItemsToWeave,
-        newItemsToIntroduce: plan.newItemsToIntroduce,
-        errorPatternsToAddress: plan.errorPatternsToAddress,
-      },
+      level: cefrLevel,
+      topic: sessionTopic,
+      type,
+      plan: planData,
     });
   } catch (error) {
     console.error('Start session error:', error);
@@ -175,14 +198,20 @@ sessionsRouter.post('/:id/finish', async (req: Request, res: Response) => {
       }
     );
 
-    // Run AI Analyst to extract memory, reviews, topics, weak spots
-    const analysis = await runAnalyst(sessionId);
+    // Run appropriate AI Analyst (Placement Analyst or Practice Analyst)
+    let analysis: any = null;
+    if (session.type === 'placement') {
+      analysis = await runPlacementAnalyst(sessionId);
+    } else {
+      analysis = await runAnalyst(sessionId);
+    }
 
     res.json({
       ok: true,
       sessionId: sessionIdStr,
       transcriptLength: formattedTranscript.length,
       analysis: analysis || null,
+      sessionType: session.type,
     });
   } catch (error) {
     console.error('Finish session error:', error);
