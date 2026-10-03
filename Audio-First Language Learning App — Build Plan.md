@@ -24,38 +24,38 @@ Each phase starts only when the previous gate passes. No dates are set yet; Phas
 
 ### Phase 0 — Foundation
 
-- [ ] Create the repo (`frontend/`, `api/`, `docker-compose.yml`, `.env.example`) and connect it to the AI Studio project
-- [ ] Write Dockerfiles: `frontend` (build, then serve with nginx and proxy `/api`) and `api`; use the official `mongo` image for `db`
-- [ ] Write `docker-compose.yml` with a named volume for MongoDB and only the frontend port exposed
-- [ ] Put the Gemini key and session secret in a git-ignored `.env`; commit `.env.example`
-- [ ] Backend auth: sign-up, login, logout, hashed passwords, httpOnly session cookie
-- [ ] Every API route checks the session and filters data by `userId`
-- [ ] Build the login screen and an empty dashboard
-- [ ] Set up hot reload for development (mounted source folders or a `docker-compose.override.yml`)
+- [x] Create the repo (`frontend/`, `api/`, `docker-compose.yml`, `.env.example`) and connect it to the AI Studio project
+- [x] Write Dockerfiles: `frontend` (build, then serve with nginx and proxy `/api`) and `api`; use the official `mongo` image for `db`
+- [x] Write `docker-compose.yml` with a named volume for MongoDB and only the frontend port exposed
+- [x] Put the Gemini key and session secret in a git-ignored `.env`; commit `.env.example`
+- [x] Backend auth: sign-up, login, logout, hashed passwords, httpOnly session cookie
+- [x] Every API route checks the session and filters data by `userId`
+- [x] Build the login screen and an empty dashboard
+- [x] Set up hot reload for development (mounted source folders or a `docker-compose.override.yml`)
 
 **Gate:** a fresh clone starts with one docker compose up, and a user can sign up, log in, and see their dashboard.
 
 ### Phase 1 — Voice loop
 
-- [ ] Backend endpoint: check the login session, return an ephemeral Live API token
-- [ ] Language picker on the dashboard (native and target), saved as profile defaults
-- [ ] Open a Live session from the browser with gemini-3.8-live; mic capture and audio playback
-- [ ] Hand-written system instruction: two languages, switching rule, a fixed CEFR level, a topic
-- [ ] Show input and output transcripts live, labeled by speaker
-- [ ] Save each session's transcript to MongoDB at the end
-- [ ] Handle session resumption and context compression; test a 20-minute session
+- [x] Backend endpoint: check the login session, return an ephemeral Live API token
+- [x] Language picker on the dashboard (native and target), saved as profile defaults
+- [x] Open a Live session from the browser with gemini-3.8-live; mic capture and audio playback
+- [x] Hand-written system instruction: two languages, switching rule, a fixed CEFR level, a topic
+- [x] Show input and output transcripts live, labeled by speaker
+- [x] Save each session's transcript to MongoDB at the end
+- [x] Handle session resumption and context compression; test a 20-minute session
 
 **Gate:** a 20-minute conversation runs without breaking, native-language questions are answered in the native language, and the transcript is saved.
 
 ### Phase 2 — Memory
 
-- [ ] Create the MongoDB collections and indexes from the overview's data model
-- [ ] Define agent tools: `log_item_event` and `log_error`; store calls in `session.toolEvents`
-- [ ] Build the analyst: transcript + plan + tool events in, validated JSON out
-- [ ] Write analyst output to items, topics, and notes
-- [ ] Build the planner: profile + history in, plan + system instruction out
-- [ ] Session summary on the dashboard
-- [ ] Self-reported level on first login as a stopgap for placement
+- [x] Create the MongoDB collections and indexes from the overview's data model
+- [x] Define agent tools: `log_item_event` and `log_error`; store calls in `session.toolEvents`
+- [x] Build the analyst: transcript + plan + tool events in, validated JSON out
+- [x] Write analyst output to items, topics, and notes
+- [x] Build the planner: profile + history in, plan + system instruction out
+- [x] Session summary on the dashboard
+- [x] Self-reported level on first login as a stopgap for placement
 
 **Gate:** session two clearly builds on session one: it reuses earlier vocabulary and addresses a logged weak spot.
 

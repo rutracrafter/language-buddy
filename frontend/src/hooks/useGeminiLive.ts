@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
+import { GoogleGenAI, Modality, Type, LiveServerMessage } from '@google/genai';
 import { downsampleTo16k, int16ToBase64, LiveAudioPlayer } from '../utils/audio.js';
 
 export type LiveSessionStatus =
@@ -37,6 +37,7 @@ export function useGeminiLive() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [targetMinutes, setTargetMinutes] = useState(10);
   const [transcript, setTranscript] = useState<LiveTranscriptItem[]>([]);
+  const [sessionAnalysis, setSessionAnalysis] = useState<any | null>(null);
 
   // Refs for audio and connection instances
   const sessionRef = useRef<any>(null);
@@ -49,6 +50,7 @@ export function useGeminiLive() {
   const currentSpeakerRef = useRef<'learner' | 'agent' | null>(null);
   const resumptionHandleRef = useRef<string | null>(null);
   const transcriptRef = useRef<LiveTranscriptItem[]>([]);
+  const toolEventsRef = useRef<any[]>([]);
 
   // Keep transcriptRef synced
   useEffect(() => {
@@ -144,6 +146,8 @@ export function useGeminiLive() {
       setError(null);
       setStatus('requesting_token');
       setTranscript([]);
+      setSessionAnalysis(null);
+      toolEventsRef.current = [];
       setElapsedSeconds(0);
       setTargetMinutes(options.targetMinutes || 10);
 
@@ -221,6 +225,40 @@ export function useGeminiLive() {
             systemInstruction: {
               parts: [{ text: sessionData.systemInstruction }],
             },
+            tools: [
+              {
+                functionDeclarations: [
+                  {
+                    name: 'log_item_event',
+                    description:
+                      'Log when the learner recognizes or produces a vocabulary item or grammar pattern.',
+                    parameters: {
+                      type: Type.OBJECT,
+                      properties: {
+                        text: { type: Type.STRING, description: 'Vocabulary word or grammar concept' },
+                        skill: { type: Type.STRING, enum: ['recognition', 'production'] },
+                        outcome: { type: Type.STRING, enum: ['again', 'hard', 'good', 'easy'] },
+                        evidence: { type: Type.STRING, description: 'What learner said or understood' },
+                      },
+                      required: ['text', 'skill', 'outcome'],
+                    },
+                  },
+                  {
+                    name: 'log_error',
+                    description:
+                      'Log when the learner makes a noteworthy grammar, pronunciation, or vocabulary mistake.',
+                    parameters: {
+                      type: Type.OBJECT,
+                      properties: {
+                        text: { type: Type.STRING, description: 'The exact mistaken phrase spoken' },
+                        note: { type: Type.STRING, description: 'Correction or explanation' },
+                      },
+                      required: ['text', 'note'],
+                    },
+                  },
+                ],
+              },
+            ],
             inputAudioTranscription: {},
             outputAudioTranscription: {},
             sessionResumption: {},
@@ -236,6 +274,32 @@ export function useGeminiLive() {
               }, 1000);
             },
             onmessage: (message: LiveServerMessage) => {
+              // Handle tool calls from the voice agent
+              const toolCall = (message as any).toolCall;
+              if (toolCall?.functionCalls) {
+                for (const call of toolCall.functionCalls) {
+                  console.log('Voice agent tool called:', call.name, call.args);
+                  toolEventsRef.current.push({
+                    name: call.name,
+                    args: call.args,
+                    id: call.id,
+                    at: new Date().toISOString(),
+                  });
+                }
+
+                try {
+                  sessionRef.current?.sendToolResponse({
+                    functionResponses: toolCall.functionCalls.map((fc: any) => ({
+                      id: fc.id,
+                      name: fc.name,
+                      response: { output: { success: true } },
+                    })),
+                  });
+                } catch (toolResErr) {
+                  console.warn('Failed to reply to agent tool call:', toolResErr);
+                }
+              }
+
               const sc = message.serverContent;
               if (!sc) return;
 
@@ -372,12 +436,13 @@ export function useGeminiLive() {
 
     const currentSessionId = sessionId;
     const finalTranscript = transcriptRef.current;
+    const toolEvents = toolEventsRef.current;
 
     cleanupAudio();
 
     if (currentSessionId) {
       try {
-        await fetch(`/api/sessions/${currentSessionId}/finish`, {
+        const finishRes = await fetch(`/api/sessions/${currentSessionId}/finish`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -387,8 +452,16 @@ export function useGeminiLive() {
               lang: 'auto',
               at: t.at.toISOString(),
             })),
+            toolEvents,
           }),
         });
+
+        if (finishRes.ok) {
+          const data = await finishRes.json();
+          if (data.analysis) {
+            setSessionAnalysis(data.analysis);
+          }
+        }
       } catch (err) {
         console.error('Failed to save session transcript:', err);
       }
@@ -411,6 +484,7 @@ export function useGeminiLive() {
     elapsedSeconds,
     targetMinutes,
     transcript,
+    sessionAnalysis,
     startSession,
     stopSession,
     toggleMute,
@@ -419,6 +493,8 @@ export function useGeminiLive() {
       setStatus('idle');
       setError(null);
       setTranscript([]);
+      setSessionAnalysis(null);
+      toolEventsRef.current = [];
       setSessionId(null);
       setElapsedSeconds(0);
     },

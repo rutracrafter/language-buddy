@@ -5,6 +5,8 @@ import { GoogleGenAI } from '@google/genai';
 import { getCollections } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { Session, TranscriptLine } from '../types.js';
+import { generateSessionPlan } from '../services/planner.js';
+import { runAnalyst } from '../services/analyst.js';
 
 export const sessionsRouter = Router();
 
@@ -37,36 +39,7 @@ function getGenAIClient(): GoogleGenAI {
   return new GoogleGenAI({ apiKey });
 }
 
-function buildSystemInstruction(
-  nativeLanguage: string,
-  targetLanguage: string,
-  level: string,
-  topic: string
-): string {
-  return `You are Language Buddy, a friendly, encouraging personal voice tutor helping the learner practice speaking.
-
-LANGUAGE RULES:
-- The learner's native/support language is: ${nativeLanguage}.
-- The target language being practiced is: ${targetLanguage}.
-- You must strictly use ONLY these two languages. Never speak in any third language.
-- Conversational practice is primarily conducted in ${targetLanguage}.
-
-CODE-SWITCHING RULE:
-- The learner is allowed to ask questions in their native language (${nativeLanguage}) at any time (such as "What does that word mean?", "How do you say...", or asking for clarification).
-- When the learner asks a question in ${nativeLanguage}, answer their question clearly and concisely in ${nativeLanguage}.
-- Immediately after answering in ${nativeLanguage}, smoothly prompt the learner to resume speaking in ${targetLanguage}.
-
-LEVEL & PACING (CEFR ${level}):
-- The learner's current target level is CEFR ${level}.
-- Speak naturally at this level: keep your turns concise (1 to 3 short sentences at a time) so the learner has ample space to speak and is not overwhelmed.
-- Use clear pronunciation, natural pacing, and accessible vocabulary appropriate for ${level}.
-
-SESSION TOPIC:
-- Topic: ${topic}.
-- Start the conversation with a warm, welcoming greeting in ${targetLanguage} and ask an easy, engaging opening question related to the topic.`;
-}
-
-// POST /api/sessions/start — Issue ephemeral Live API token & create session
+// POST /api/sessions/start — Run Planner, issue ephemeral Live token & create session
 sessionsRouter.post('/start', async (req: Request, res: Response) => {
   try {
     const parseResult = startSessionSchema.safeParse(req.body);
@@ -75,21 +48,17 @@ sessionsRouter.post('/start', async (req: Request, res: Response) => {
       return;
     }
 
-    const { targetMinutes, topic: requestedTopic } = parseResult.data;
+    const { targetMinutes, topic: requestedTopic, nativeLanguage, targetLanguage } =
+      parseResult.data;
     const collections = getCollections();
 
-    const profile = await collections.profiles.findOne({ userId: req.userId! });
-    const nativeLanguage = parseResult.data.nativeLanguage || profile?.nativeLanguage || 'English';
-    const targetLanguage = parseResult.data.targetLanguage || profile?.targetLanguage || 'Spanish';
-    const cefrLevel = profile?.level?.overall || 'A1';
-    const topic = requestedTopic || 'Everyday life, introductions, and favorite foods';
-
-    const systemInstruction = buildSystemInstruction(
+    // 1. Run the AI Planner to produce a customized session plan & system instruction
+    const plan = await generateSessionPlan(req.userId!, {
+      targetMinutes,
       nativeLanguage,
       targetLanguage,
-      cefrLevel,
-      topic
-    );
+      requestedTopic,
+    });
 
     const client = getGenAIClient();
     const expireTime = new Date(Date.now() + 45 * 60 * 1000).toISOString();
@@ -113,15 +82,19 @@ sessionsRouter.post('/start', async (req: Request, res: Response) => {
       userId: req.userId!,
       type: 'practice',
       languages: {
-        native: nativeLanguage,
-        target: targetLanguage,
+        native: nativeLanguage || 'English',
+        target: targetLanguage || 'Spanish',
       },
       targetMinutes,
       startedAt: now,
       plan: {
-        topic,
-        cefrLevel,
-        systemInstruction,
+        topic: plan.topic,
+        goal: plan.goal,
+        cefrLevel: plan.cefrLevel,
+        dueItemsToWeave: plan.dueItemsToWeave,
+        newItemsToIntroduce: plan.newItemsToIntroduce,
+        errorPatternsToAddress: plan.errorPatternsToAddress,
+        systemInstruction: plan.systemInstruction,
       },
       transcript: [],
       toolEvents: [],
@@ -134,14 +107,17 @@ sessionsRouter.post('/start', async (req: Request, res: Response) => {
       sessionId: sessionResult.insertedId.toHexString(),
       token: authToken.name,
       model: 'gemini-3.8-live',
-      systemInstruction,
+      systemInstruction: plan.systemInstruction,
       targetMinutes,
-      languages: {
-        native: nativeLanguage,
-        target: targetLanguage,
+      languages: sessionDoc.languages,
+      level: plan.cefrLevel,
+      topic: plan.topic,
+      plan: {
+        goal: plan.goal,
+        dueItemsToWeave: plan.dueItemsToWeave,
+        newItemsToIntroduce: plan.newItemsToIntroduce,
+        errorPatternsToAddress: plan.errorPatternsToAddress,
       },
-      level: cefrLevel,
-      topic,
     });
   } catch (error) {
     console.error('Start session error:', error);
@@ -151,7 +127,7 @@ sessionsRouter.post('/start', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/sessions/:id/finish — Save transcript and complete session
+// POST /api/sessions/:id/finish — Save transcript, toolEvents, run Analyst & complete session
 sessionsRouter.post('/:id/finish', async (req: Request, res: Response) => {
   try {
     const rawId = req.params.id;
@@ -195,15 +171,18 @@ sessionsRouter.post('/:id/finish', async (req: Request, res: Response) => {
           endedAt: new Date(),
           transcript: formattedTranscript,
           toolEvents: toolEvents || [],
-          analysisStatus: 'done',
         },
       }
     );
+
+    // Run AI Analyst to extract memory, reviews, topics, weak spots
+    const analysis = await runAnalyst(sessionId);
 
     res.json({
       ok: true,
       sessionId: sessionIdStr,
       transcriptLength: formattedTranscript.length,
+      analysis: analysis || null,
     });
   } catch (error) {
     console.error('Finish session error:', error);

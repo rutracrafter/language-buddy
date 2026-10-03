@@ -27,6 +27,52 @@ const updateProfileSchema = z.object({
     .optional(),
 });
 
+profileRouter.get('/dashboard', async (req: Request, res: Response) => {
+  try {
+    const collections = getCollections();
+    const userId = req.userId!;
+
+    const profile = await collections.profiles.findOne({ userId });
+    const totalItems = await collections.items.countDocuments({ userId });
+    const recognitionItems = await collections.items.countDocuments({
+      userId,
+      stage: 'recognition',
+    });
+    const productionItems = await collections.items.countDocuments({
+      userId,
+      stage: 'production',
+    });
+    const totalReviews = await collections.reviews.countDocuments({ userId });
+
+    const coveredTopics = await collections.topics
+      .find({ userId })
+      .sort({ lastCoveredAt: -1 })
+      .limit(6)
+      .toArray();
+
+    const openNotes = await collections.notes
+      .find({ userId, status: 'open' })
+      .sort({ priority: -1, createdAt: -1 })
+      .limit(5)
+      .toArray();
+
+    res.json({
+      profile,
+      stats: {
+        totalItems,
+        recognitionItems,
+        productionItems,
+        totalReviews,
+      },
+      coveredTopics,
+      openNotes,
+    });
+  } catch (error) {
+    console.error('Get profile dashboard stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch dashboard metrics' });
+  }
+});
+
 profileRouter.get('/', async (req: Request, res: Response) => {
   try {
     const collections = getCollections();

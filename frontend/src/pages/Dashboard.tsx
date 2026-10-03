@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext.js';
 import {
   Mic,
@@ -14,6 +14,7 @@ import {
   Calendar,
   MessageSquare,
   History,
+  Layers,
 } from 'lucide-react';
 import { CEFRLevel } from '../types.js';
 import { useGeminiLive } from '../hooks/useGeminiLive.js';
@@ -32,6 +33,8 @@ const AVAILABLE_LANGUAGES = [
   'Russian',
   'Arabic',
 ];
+
+const CEFR_LEVELS: CEFRLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
 const CEFR_DESCRIPTIONS: Record<CEFRLevel, string> = {
   A1: 'Beginner — Basic personal phrases & everyday greetings',
@@ -55,8 +58,51 @@ export const Dashboard: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [recentSessions, setRecentSessions] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [requestedTopic, setRequestedTopic] = useState('');
 
-  const fetchHistory = async () => {
+  // Phase 2 Memory State
+  const [dashboardMetrics, setDashboardMetrics] = useState<{
+    stats: {
+      totalItems: number;
+      recognitionItems: number;
+      productionItems: number;
+      totalReviews: number;
+    };
+    coveredTopics: any[];
+    openNotes: any[];
+  }>({
+    stats: {
+      totalItems: 0,
+      recognitionItems: 0,
+      productionItems: 0,
+      totalReviews: 0,
+    },
+    coveredTopics: [],
+    openNotes: [],
+  });
+
+  const fetchDashboardStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/profile/dashboard');
+      if (res.ok) {
+        const data = await res.json();
+        setDashboardMetrics({
+          stats: data.stats || {
+            totalItems: 0,
+            recognitionItems: 0,
+            productionItems: 0,
+            totalReviews: 0,
+          },
+          coveredTopics: data.coveredTopics || [],
+          openNotes: data.openNotes || [],
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch dashboard stats:', err);
+    }
+  }, []);
+
+  const fetchHistory = useCallback(async () => {
     try {
       setIsLoadingHistory(true);
       const res = await fetch('/api/sessions/recent');
@@ -69,11 +115,12 @@ export const Dashboard: React.FC = () => {
     } finally {
       setIsLoadingHistory(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+    fetchDashboardStats();
+  }, [fetchHistory, fetchDashboardStats]);
 
   // Sync profile defaults if profile loads after mount
   useEffect(() => {
@@ -128,18 +175,34 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleLevelChange = async (newLevel: CEFRLevel) => {
+    try {
+      await updateProfile({
+        level: {
+          overall: newLevel,
+          speaking: newLevel,
+          listening: newLevel,
+        },
+        levelConfidence: 0.25, // self-reported confidence
+      });
+    } catch (err) {
+      console.error('Failed to update CEFR level', err);
+    }
+  };
+
   const handleStartSession = () => {
     liveSession.startSession({
       targetMinutes: sessionMinutes,
       nativeLanguage,
       targetLanguage,
-      topic: 'Everyday life, introductions, and favorite foods',
+      topic: requestedTopic.trim() || undefined,
     });
   };
 
   const handleReturnToDashboard = () => {
     liveSession.resetSession();
     fetchHistory();
+    fetchDashboardStats();
   };
 
   const currentLevel = profile?.level?.overall || 'A1';
@@ -156,10 +219,11 @@ export const Dashboard: React.FC = () => {
         elapsedSeconds={liveSession.elapsedSeconds}
         targetMinutes={liveSession.targetMinutes}
         transcript={liveSession.transcript}
+        sessionAnalysis={liveSession.sessionAnalysis}
         nativeLanguage={nativeLanguage}
         targetLanguage={targetLanguage}
         cefrLevel={currentLevel}
-        topic="Everyday life, introductions, and favorite foods"
+        topic={requestedTopic || 'Everyday conversation & vocabulary practice'}
         onToggleMute={liveSession.toggleMute}
         onStopSession={liveSession.stopSession}
         onReturnToDashboard={handleReturnToDashboard}
@@ -173,26 +237,37 @@ export const Dashboard: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
         <div>
           <div className="inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-2">
-            Phase 1 Voice Loop Active
+            Phase 2 Memory & Adaptive Planner Active
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
             Learner Dashboard
           </h2>
           <p className="text-sm text-slate-400 mt-1">
-            Speaking and listening first • Adaptive spaced-repetition conversations
+            Speaking and listening first • Adaptive memory & automated error tracking
           </p>
         </div>
 
+        {/* Assigned Level Card with self-report dropdown */}
         <div className="flex items-center space-x-3 bg-slate-900 border border-slate-800 p-2.5 rounded-xl">
           <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
             <Award className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
-            <div className="text-xs text-slate-400 font-medium">Assigned Level</div>
-            <div className="text-lg font-bold text-white flex items-center gap-1.5">
-              <span>{currentLevel}</span>
-              <span className="text-xs font-normal text-slate-400">
-                ({Math.round((profile?.levelConfidence ?? 0.1) * 100)}% confidence)
+            <div className="text-xs text-slate-400 font-medium">CEFR Level</div>
+            <div className="flex items-center gap-2">
+              <select
+                value={currentLevel}
+                onChange={(e) => handleLevelChange(e.target.value as CEFRLevel)}
+                className="bg-slate-950 border border-slate-700 rounded-lg text-emerald-400 font-bold text-sm px-2 py-0.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+              >
+                {CEFR_LEVELS.map((lvl) => (
+                  <option key={lvl} value={lvl}>
+                    Level {lvl}
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs text-slate-500">
+                ({Math.round((profile?.levelConfidence ?? 0.1) * 100)}% conf)
               </span>
             </div>
           </div>
@@ -209,14 +284,13 @@ export const Dashboard: React.FC = () => {
               <div>
                 <span className="inline-flex items-center text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">
                   <Sparkles className="w-3.5 h-3.5 mr-1" />
-                  Ready to Speak
+                  Planned Practice
                 </span>
                 <h3 className="text-xl sm:text-2xl font-bold text-white">
-                  Speak {targetLanguage} with Gemini Live
+                  Speak {targetLanguage} with your AI Tutor
                 </h3>
                 <p className="text-slate-400 text-sm mt-1 max-w-lg">
-                  Ask questions in {nativeLanguage} whenever you need help. Live transcripts and
-                  audio streaming active in real time.
+                  Every conversation adapts to your known vocabulary, error patterns, and spaced review schedule.
                 </p>
               </div>
 
@@ -229,8 +303,22 @@ export const Dashboard: React.FC = () => {
               </button>
             </div>
 
+            {/* Optional Topic Input */}
+            <div className="mt-5">
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                Practice Topic or Goal (Optional):
+              </label>
+              <input
+                type="text"
+                value={requestedTopic}
+                onChange={(e) => setRequestedTopic(e.target.value)}
+                placeholder="e.g., Ordering tapas at a restaurant, job interviews, weekend plans"
+                className="w-full px-3.5 py-2 bg-slate-950/80 border border-slate-700/80 rounded-xl text-slate-200 placeholder-slate-500 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              />
+            </div>
+
             {/* Session Duration Selector */}
-            <div className="mt-6 pt-6 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div className="mt-5 pt-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center text-xs text-slate-400">
                 <Clock className="w-4 h-4 mr-1.5 text-slate-500" />
                 Target session length:
@@ -364,7 +452,13 @@ export const Dashboard: React.FC = () => {
                         </div>
                         <div className="text-slate-500 flex items-center space-x-2 mt-0.5">
                           <Calendar className="w-3 h-3" />
-                          <span>{new Date(s.startedAt).toLocaleDateString()} at {new Date(s.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span>
+                            {new Date(s.startedAt).toLocaleDateString()} at{' '}
+                            {new Date(s.startedAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
                         </div>
                       </div>
 
@@ -384,7 +478,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Col: Memory & SRS Progress Placeholders */}
+        {/* Right Col: Memory & SRS Progress Cards */}
         <div className="space-y-6">
           {/* Level Details Card */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
@@ -398,40 +492,119 @@ export const Dashboard: React.FC = () => {
             <div className="space-y-2 text-xs">
               <div className="flex justify-between text-slate-300">
                 <span>Speaking</span>
-                <span className="font-semibold text-emerald-400">{profile?.level?.speaking || 'A1'}</span>
+                <span className="font-semibold text-emerald-400">
+                  {profile?.level?.speaking || 'A1'}
+                </span>
               </div>
               <div className="flex justify-between text-slate-300">
                 <span>Listening</span>
-                <span className="font-semibold text-emerald-400">{profile?.level?.listening || 'A1'}</span>
+                <span className="font-semibold text-emerald-400">
+                  {profile?.level?.listening || 'A1'}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Due Reviews & Memory Stats */}
+          {/* Memory Bank & SRS Items */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-            <h4 className="text-sm font-bold text-white flex items-center mb-3">
-              <RotateCw className="w-4 h-4 mr-2 text-emerald-400" />
-              Spaced Repetition (FSRS)
+            <h4 className="text-sm font-bold text-white flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <RotateCw className="w-4 h-4 mr-2 text-emerald-400" />
+                Memory Bank (SRS)
+              </div>
+              <span className="text-xs font-semibold text-emerald-400">
+                {dashboardMetrics.stats.totalItems} items
+              </span>
             </h4>
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80 text-center">
-              <div className="text-2xl font-bold text-white">0</div>
-              <div className="text-xs text-slate-500 mt-0.5">Reviews Due Today</div>
+
+            <div className="grid grid-cols-2 gap-2 text-center text-xs mb-3">
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <div className="text-lg font-bold text-white">
+                  {dashboardMetrics.stats.recognitionItems}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Recognition</div>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <div className="text-lg font-bold text-emerald-400">
+                  {dashboardMetrics.stats.productionItems}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">Production</div>
+              </div>
             </div>
-            <p className="text-xs text-slate-500 mt-3 text-center">
-              Items will appear as you practice speaking in Phase 2 & 3.
+
+            <p className="text-[11px] text-slate-400 text-center">
+              Total review events logged: <strong className="text-white">{dashboardMetrics.stats.totalReviews}</strong>
             </p>
           </div>
 
-          {/* Topics & Open Notes */}
+          {/* Topics Covered & Depth */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+            <h4 className="text-sm font-bold text-white flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <Layers className="w-4 h-4 mr-2 text-emerald-400" />
+                Covered Topics
+              </div>
+              <span className="text-xs text-slate-400">
+                {dashboardMetrics.coveredTopics.length} topics
+              </span>
+            </h4>
+
+            {dashboardMetrics.coveredTopics.length === 0 ? (
+              <p className="text-xs text-slate-500 text-center py-3">
+                Topics will accumulate as you practice speaking.
+              </p>
+            ) : (
+              <div className="space-y-2.5 text-xs">
+                {dashboardMetrics.coveredTopics.map((top) => (
+                  <div
+                    key={top._id || top.name}
+                    className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="font-semibold text-slate-200 capitalize">{top.name}</div>
+                      <div className="text-[10px] text-slate-500">
+                        {top.sessionsCount} session{top.sessionsCount === 1 ? '' : 's'}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
+                        Depth {top.depth}/3
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Open Weak Spots & Build-On Notes */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
             <h4 className="text-sm font-bold text-white flex items-center mb-3">
               <BookOpen className="w-4 h-4 mr-2 text-emerald-400" />
               Focus Areas & Weak Spots
             </h4>
-            <div className="text-xs text-slate-500 flex items-center justify-center p-4 border border-dashed border-slate-800 rounded-xl">
-              <AlertTriangle className="w-4 h-4 mr-1.5 text-slate-600" />
-              No active error patterns logged yet.
-            </div>
+
+            {dashboardMetrics.openNotes.length === 0 ? (
+              <div className="text-xs text-slate-500 flex items-center justify-center p-4 border border-dashed border-slate-800 rounded-xl">
+                <AlertTriangle className="w-4 h-4 mr-1.5 text-slate-600" />
+                No active error patterns logged yet.
+              </div>
+            ) : (
+              <div className="space-y-2 text-xs">
+                {dashboardMetrics.openNotes.map((note) => (
+                  <div
+                    key={note._id || note.text}
+                    className="p-2.5 rounded-lg bg-slate-950 border border-amber-500/20 text-slate-300"
+                  >
+                    <div className="flex items-center space-x-1.5 text-amber-400 font-bold text-[10px] uppercase mb-0.5">
+                      <AlertTriangle className="w-3 h-3" />
+                      <span>{note.kind.replace('_', ' ')}</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed">{note.text}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

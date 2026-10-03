@@ -11,6 +11,9 @@ import {
   AlertCircle,
   CheckCircle,
   Languages,
+  BookOpen,
+  TrendingUp,
+  Target,
 } from 'lucide-react';
 import { LiveTranscriptItem, LiveSessionStatus } from '../hooks/useGeminiLive.js';
 
@@ -23,6 +26,7 @@ interface LiveSessionViewProps {
   elapsedSeconds: number;
   targetMinutes: number;
   transcript: LiveTranscriptItem[];
+  sessionAnalysis?: any;
   nativeLanguage: string;
   targetLanguage: string;
   cefrLevel: string;
@@ -41,6 +45,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
   elapsedSeconds,
   targetMinutes,
   transcript,
+  sessionAnalysis,
   nativeLanguage,
   targetLanguage,
   cefrLevel,
@@ -66,37 +71,162 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
 
   if (status === 'finished') {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl text-center">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-500/10">
-            <CheckCircle className="w-8 h-8" />
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/10">
+              <CheckCircle className="w-7 h-7" />
+            </div>
+            <h2 className="text-2xl font-bold text-white">Session Completed!</h2>
+            <p className="text-slate-400 text-xs sm:text-sm mt-1">
+              Spoken practice in <strong className="text-emerald-400">{targetLanguage}</strong> has been analyzed and saved to your memory history.
+            </p>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-1">Session Complete!</h2>
-          <p className="text-slate-400 text-sm mb-6">
-            Your conversation in {targetLanguage} has been recorded and saved to your history.
-          </p>
 
-          <div className="grid grid-cols-2 gap-4 mb-8 text-left">
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-              <div className="text-xs text-slate-500 font-medium">Practice Duration</div>
-              <div className="text-xl font-bold text-emerald-400 mt-1">
+          {/* Quick Metrics */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+            <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-left">
+              <div className="text-[11px] text-slate-500 font-medium">Practice Duration</div>
+              <div className="text-lg font-bold text-emerald-400 mt-0.5">
                 {formatTime(elapsedSeconds)}
               </div>
             </div>
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-              <div className="text-xs text-slate-500 font-medium">Conversation Turns</div>
-              <div className="text-xl font-bold text-white mt-1">
+            <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-left">
+              <div className="text-[11px] text-slate-500 font-medium">Conversation Turns</div>
+              <div className="text-lg font-bold text-white mt-0.5">
                 {transcript.length} turns
+              </div>
+            </div>
+            <div className="col-span-2 sm:col-span-1 bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-left">
+              <div className="text-[11px] text-slate-500 font-medium">Items Evaluated</div>
+              <div className="text-lg font-bold text-sky-400 mt-0.5">
+                {sessionAnalysis?.itemsReviewed?.length || 0} reviewed
               </div>
             </div>
           </div>
 
-          {transcript.length > 0 && (
-            <div className="mb-8 text-left">
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Session Transcript Preview
+          {/* AI Analyst Insights */}
+          {sessionAnalysis?.summary && (
+            <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5 mb-6 space-y-4 text-xs">
+              <div className="flex items-center space-x-2 text-emerald-400 font-bold text-sm">
+                <Sparkles className="w-4 h-4" />
+                <span>AI Tutor Insights & Summary</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-3 rounded-xl bg-slate-900 border border-emerald-500/20">
+                  <span className="font-semibold text-emerald-400 block mb-1">
+                    ✓ What Went Well
+                  </span>
+                  <p className="text-slate-300 leading-relaxed">
+                    {sessionAnalysis.summary.whatWentWell}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-900 border border-sky-500/20">
+                  <span className="font-semibold text-sky-400 block mb-1">
+                    🎯 Focus for Next Session
+                  </span>
+                  <p className="text-slate-300 leading-relaxed">
+                    {sessionAnalysis.summary.nextFocus}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Items Reviewed Breakdown */}
+          {sessionAnalysis?.itemsReviewed && sessionAnalysis.itemsReviewed.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2.5 flex items-center">
+                <Target className="w-4 h-4 mr-1.5 text-emerald-400" />
+                Evaluated Vocabulary & Patterns
               </h4>
-              <div className="max-h-60 overflow-y-auto bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {sessionAnalysis.itemsReviewed.map((item: any, idx: number) => {
+                  const outcomeColors: Record<string, string> = {
+                    easy: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+                    good: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
+                    hard: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                    again: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+                  };
+                  return (
+                    <div
+                      key={idx}
+                      className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between"
+                    >
+                      <div>
+                        <span className="font-bold text-slate-100">{item.text}</span>
+                        <span className="text-slate-500 ml-1.5">({item.gloss})</span>
+                        <div className="text-[10px] text-slate-400 capitalize mt-0.5">
+                          {item.skill}
+                        </div>
+                      </div>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border capitalize ${
+                          outcomeColors[item.outcome] || 'bg-slate-800 text-slate-300'
+                        }`}
+                      >
+                        {item.outcome}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* New Items Introduced */}
+          {sessionAnalysis?.itemsIntroduced && sessionAnalysis.itemsIntroduced.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2.5 flex items-center">
+                <BookOpen className="w-4 h-4 mr-1.5 text-sky-400" />
+                New Vocabulary Introduced
+              </h4>
+              <div className="space-y-2 text-xs">
+                {sessionAnalysis.itemsIntroduced.map((item: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between"
+                  >
+                    <div>
+                      <span className="font-bold text-sky-300">{item.text}</span>
+                      <span className="text-slate-400 ml-1.5">— {item.gloss}</span>
+                    </div>
+                    <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">
+                      {item.cefrLevel}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Topic Coverage Updated */}
+          {sessionAnalysis?.topicCoverage && (
+            <div className="mb-6 bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="w-4 h-4 text-emerald-400" />
+                <div>
+                  <span className="text-slate-400">Topic: </span>
+                  <span className="font-bold text-slate-200">
+                    {sessionAnalysis.topicCoverage.name}
+                  </span>
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                Depth {sessionAnalysis.topicCoverage.depth} / 3
+              </span>
+            </div>
+          )}
+
+          {/* Transcript Scroll Area */}
+          {transcript.length > 0 && (
+            <div className="mb-6 text-left">
+              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                Conversation Transcript
+              </h4>
+              <div className="max-h-52 overflow-y-auto bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 text-xs">
                 {transcript.map((item) => (
                   <div key={item.id} className="space-y-0.5">
                     <span
@@ -115,7 +245,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
 
           <button
             onClick={onReturnToDashboard}
-            className="w-full py-3 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-colors"
+            className="w-full py-3.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-colors cursor-pointer"
           >
             Back to Dashboard
           </button>
@@ -252,7 +382,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
                 <button
                   type="button"
                   onClick={onReturnToDashboard}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition-colors"
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                 >
                   Back to Dashboard
                 </button>
@@ -281,7 +411,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
                 <div className="w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center mb-3">
                   <Mic className="w-5 h-5 text-slate-600" />
                 </div>
-                <p>Say hello to your tutor to begin...</p>
+                <p>Connecting with your AI tutor...</p>
                 <p className="mt-1 text-slate-600">Both speakers will transcribe here in real time.</p>
               </div>
             ) : (
@@ -333,7 +463,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
         <div className="flex items-center space-x-3">
           <button
             onClick={onToggleMute}
-            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-semibold text-xs transition-colors ${
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl font-semibold text-xs transition-colors cursor-pointer ${
               isMuted
                 ? 'bg-rose-500 text-white'
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
@@ -347,10 +477,10 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
         <button
           onClick={onStopSession}
           disabled={status === 'finishing'}
-          className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-rose-600/20 transition-colors"
+          className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-rose-600/20 transition-colors cursor-pointer"
         >
           <PhoneOff className="w-4 h-4" />
-          <span>{status === 'finishing' ? 'Saving Session...' : 'Finish & Save Session'}</span>
+          <span>{status === 'finishing' ? 'Analyzing & Saving Session...' : 'Finish & Save Session'}</span>
         </button>
       </div>
     </div>
