@@ -2,19 +2,23 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 
-// Auto-detect local dev machine IP from Expo host URI when possible
+const MAC_WIFI_IP = '10.30.10.24';
+
 function getDefaultApiUrl(): string {
   const hostUri = Constants.expoConfig?.hostUri;
-  if (hostUri) {
+  if (hostUri && !hostUri.includes('exp.direct') && !hostUri.includes('ngrok')) {
     const ip = hostUri.split(':')[0];
-    return `http://${ip}:8088`;
+    if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+      return `http://${ip}:8088`;
+    }
   }
 
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:8088';
   }
 
-  return 'http://localhost:8088';
+  // Physical iOS devices on local Wi-Fi connect to the Mac's IP
+  return `http://${MAC_WIFI_IP}:8088`;
 }
 
 let cachedApiUrl: string | null = null;

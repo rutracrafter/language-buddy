@@ -18,6 +18,16 @@ export default function IndexScreen() {
     }
   }, [user, isLoading, router]);
 
+  // Fallback safety timeout so app is never trapped on the loading spinner
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isLoading && !user) {
+        router.replace('/(auth)/login');
+      }
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [isLoading, user, router]);
+
   return (
     <View style={styles.container}>
       <View style={styles.logoBadge}>

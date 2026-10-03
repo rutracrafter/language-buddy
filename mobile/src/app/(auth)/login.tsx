@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LanguagePickerModal } from '../../components/LanguagePickerModal';
+import { getApiBaseUrl, setApiBaseUrl } from '../../constants/api';
 
 const COMMON_LANGUAGES = [
   'English',
@@ -40,6 +41,19 @@ export default function LoginScreen() {
   const [targetLanguage, setTargetLanguage] = useState('Spanish');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [serverUrl, setServerUrl] = useState('');
+  const [isEditingServer, setIsEditingServer] = useState(false);
+
+  useEffect(() => {
+    getApiBaseUrl().then(setServerUrl);
+  }, []);
+
+  const handleSaveServer = async () => {
+    if (serverUrl.trim()) {
+      await setApiBaseUrl(serverUrl.trim());
+      setIsEditingServer(false);
+    }
+  };
 
   const [pickerModal, setPickerModal] = useState<{
     visible: boolean;
@@ -215,6 +229,35 @@ export default function LoginScreen() {
               </View>
             )}
           </TouchableOpacity>
+
+          {/* Server Config Link */}
+          <TouchableOpacity
+            onPress={() => setIsEditingServer((e) => !e)}
+            style={styles.serverRow}
+          >
+            <Ionicons name="server-outline" size={12} color="#64748b" />
+            <Text style={styles.serverRowText} numberOfLines={1}>
+              {serverUrl || 'Default server'} (edit)
+            </Text>
+          </TouchableOpacity>
+
+          {isEditingServer && (
+            <View style={styles.serverEditBox}>
+              <Text style={styles.serverEditLabel}>Backend Server URL:</Text>
+              <TextInput
+                style={styles.serverInput}
+                value={serverUrl}
+                onChangeText={setServerUrl}
+                placeholder="http://10.30.10.24:8088"
+                placeholderTextColor="#64748b"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity onPress={handleSaveServer} style={styles.saveServerBtn}>
+                <Text style={styles.saveServerText}>Save Server URL</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -407,5 +450,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#020617',
+  },
+  serverRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 14,
+    paddingVertical: 4,
+  },
+  serverRowText: {
+    fontSize: 11,
+    color: '#64748b',
+  },
+  serverEditBox: {
+    marginTop: 10,
+    backgroundColor: '#020617',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  serverEditLabel: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginBottom: 6,
+  },
+  serverInput: {
+    backgroundColor: '#0f172a',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 12,
+    color: '#38bdf8',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    marginBottom: 8,
+  },
+  saveServerBtn: {
+    backgroundColor: '#1e293b',
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  saveServerText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#34d399',
   },
 });

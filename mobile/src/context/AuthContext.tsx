@@ -44,21 +44,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       headers['Cookie'] = `lb_session=${savedToken}`;
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
 
-    // Check if new cookie was returned
-    const setCookie = response.headers.get('set-cookie');
-    if (setCookie) {
-      const match = setCookie.match(/lb_session=([^;]+)/);
-      if (match && match[1]) {
-        await SecureStore.setItemAsync(SESSION_TOKEN_KEY, match[1]);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+        signal: options.signal || controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      // Check if new cookie was returned
+      const setCookie = response.headers.get('set-cookie');
+      if (setCookie) {
+        const match = setCookie.match(/lb_session=([^;]+)/);
+        if (match && match[1]) {
+          await SecureStore.setItemAsync(SESSION_TOKEN_KEY, match[1]);
+        }
       }
-    }
 
-    return response;
+      return response;
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      throw fetchErr;
+    }
   }, []);
 
   const fetchCurrentUser = useCallback(async () => {
