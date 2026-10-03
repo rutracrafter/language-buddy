@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.js';
-import { Headphones, LogOut, User, Settings } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import { HandDrawnFlame, HandDrawnSettings } from './HandDrawnIcons.js';
 import { SettingsModal } from './SettingsModal.js';
+import { BUDDY_ASSETS } from '../assets/buddyAssets.js';
 
 export const Navbar: React.FC = () => {
   const { user, profile, logout } = useAuth();
@@ -9,48 +11,60 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-20 pt-safe">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2.5 sm:space-x-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 flex-shrink-0">
-              <Headphones className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950 font-bold" />
+      <header className="border-b border-stone-200/80 bg-[#FAF7F0]/95 bg-sketchbook backdrop-blur-md sticky top-0 z-20 pt-safe">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+          {/* Logo / Mascot brand */}
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden shadow-xs ring-1.5 ring-orange-300 bg-orange-100 flex items-center justify-center flex-shrink-0">
+              <img
+                src={BUDDY_ASSETS.wavingHappy}
+                alt="Buddy waving"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
-              <h1 className="font-extrabold text-base sm:text-lg text-white leading-tight">Language Buddy</h1>
-              <p className="text-[10px] sm:text-xs text-slate-400">Audio-First Voice Tutor</p>
+              <div className="flex items-center space-x-1.5">
+                <span className="font-display font-bold text-sm sm:text-base text-[#2B2B2B] leading-none">
+                  Language Buddy
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+              <span className="text-[10px] text-stone-500 font-medium hidden xs:block">
+                Voice Companion
+              </span>
             </div>
           </div>
 
+          {/* Right Controls */}
           {user && (
-            <div className="flex items-center space-x-1.5 sm:space-x-3">
-              {profile && (
-                <div className="flex items-center text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700/80">
-                  <span className="font-bold text-emerald-400 mr-1 max-w-[80px] sm:max-w-none truncate">
-                    {profile.targetLanguage}
-                  </span>
-                  <span className="text-slate-500 hidden xs:inline">•</span>
-                  <span className="ml-1 text-slate-400 font-semibold">{profile.level?.overall || 'A1'}</span>
-                </div>
-              )}
-              <div className="hidden lg:flex items-center text-sm text-slate-300 bg-slate-800/60 px-3 py-1.5 rounded-lg border border-slate-700/60">
-                <User className="w-4 h-4 mr-2 text-slate-400" />
-                <span className="max-w-[150px] truncate">{user.email}</span>
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              {/* Streak badge */}
+              <div className="flex items-center gap-1 text-[11px] font-medium text-[#2B2B2B] bg-white/90 px-2.5 py-1 rounded-full shadow-xs border border-stone-200/60">
+                <HandDrawnFlame size={14} washColor="#F97316" strokeColor="#2B2B2B" />
+                <span className="font-bold text-[#2B2B2B]">{profile?.level?.overall || 'A1'}</span>
+                <span className="text-stone-500 text-[10px] hidden sm:inline">
+                  ({profile?.targetLanguage || 'Spanish'})
+                </span>
               </div>
+
+              {/* Settings button */}
               <button
                 type="button"
                 onClick={() => setShowSettings(true)}
-                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-emerald-400 active:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/80 hover:bg-white active:scale-95 text-[#2B2B2B] flex items-center justify-center shadow-xs border border-stone-200/60 transition-all cursor-pointer"
                 title="Settings & Preferences"
               >
-                <Settings className="w-5 h-5" />
+                <HandDrawnSettings size={16} washColor="#FED7AA" strokeColor="#2B2B2B" />
               </button>
+
+              {/* Logout button */}
               <button
                 type="button"
                 onClick={logout}
-                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-400 active:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/80 hover:bg-rose-50 text-stone-500 hover:text-rose-600 flex items-center justify-center shadow-xs border border-stone-200/60 transition-all cursor-pointer"
                 title="Log out"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
           )}

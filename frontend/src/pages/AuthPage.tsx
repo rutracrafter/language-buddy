@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.js';
-import { Headphones, Globe, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
+import { AlertCircle, ArrowRight } from 'lucide-react';
+import { HandDrawnPhone, HandDrawnSparkle } from '../components/HandDrawnIcons.js';
+import { BUDDY_ASSETS } from '../assets/buddyAssets.js';
 
 const COMMON_LANGUAGES = [
   'English',
   'Spanish',
+  'Japanese',
   'French',
   'German',
   'Italian',
   'Portuguese',
-  'Japanese',
   'Chinese (Mandarin)',
   'Korean',
   'Russian',
@@ -48,32 +50,38 @@ export const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950 text-slate-100">
+    <div className="min-h-screen flex flex-col justify-center py-10 px-4 sm:px-6 bg-[#FAF7F0] bg-sketchbook text-[#2B2B2B]">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 shadow-xl shadow-emerald-500/20 mb-4">
-          <Headphones className="w-8 h-8 text-slate-950" />
+        {/* Floating Mascot Avatar */}
+        <div className="w-24 h-24 rounded-full overflow-hidden shadow-md bg-orange-100 ring-4 ring-orange-300/60 mx-auto mb-4 animate-gentle-float flex items-center justify-center">
+          <img
+            src={BUDDY_ASSETS.wavingHappy}
+            alt="Buddy mascot"
+            className="w-full h-full object-cover"
+          />
         </div>
-        <h2 className="text-3xl font-extrabold tracking-tight text-white">
+        <h2 className="font-display font-extrabold text-2xl sm:text-3xl tracking-tight text-[#2B2B2B]">
           Language Buddy
         </h2>
-        <p className="mt-2 text-sm text-slate-400">
-          Audio-first spoken language learning powered by Gemini Live
+        <p className="mt-1 text-xs sm:text-sm text-stone-600 font-medium">
+          Your warm AI voice companion for spoken language practice
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
-        <div className="bg-slate-900 py-8 px-6 shadow-2xl rounded-2xl border border-slate-800 sm:px-10">
-          <div className="flex border-b border-slate-800 mb-6">
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white/95 rounded-[32px] p-6 sm:p-8 shadow-sm border border-stone-200/80">
+          {/* Tab Selector */}
+          <div className="flex border-b border-stone-200 mb-6">
             <button
               type="button"
               onClick={() => {
                 setIsSignUp(false);
                 setError(null);
               }}
-              className={`flex-1 pb-3 text-sm font-semibold text-center border-b-2 transition-colors ${
+              className={`flex-1 pb-3 text-sm font-bold text-center border-b-2 transition-colors cursor-pointer ${
                 !isSignUp
-                  ? 'border-emerald-500 text-emerald-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
+                  ? 'border-emerald-500 text-emerald-700'
+                  : 'border-transparent text-stone-400 hover:text-stone-700'
               }`}
             >
               Sign In
@@ -84,10 +92,10 @@ export const AuthPage: React.FC = () => {
                 setIsSignUp(true);
                 setError(null);
               }}
-              className={`flex-1 pb-3 text-sm font-semibold text-center border-b-2 transition-colors ${
+              className={`flex-1 pb-3 text-sm font-bold text-center border-b-2 transition-colors cursor-pointer ${
                 isSignUp
-                  ? 'border-emerald-500 text-emerald-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
+                  ? 'border-emerald-500 text-emerald-700'
+                  : 'border-transparent text-stone-400 hover:text-stone-700'
               }`}
             >
               Create Account
@@ -95,15 +103,15 @@ export const AuthPage: React.FC = () => {
           </div>
 
           {error && (
-            <div className="mb-5 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-start text-sm text-rose-300">
-              <AlertCircle className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-rose-400" />
+            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start text-xs text-rose-700">
+              <AlertCircle className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-rose-500" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-stone-700 mb-1">
                 Email Address
               </label>
               <input
@@ -112,12 +120,12 @@ export const AuthPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                className="w-full px-3.5 py-2.5 bg-[#FAF7F0] border border-stone-300 rounded-xl text-[#2B2B2B] placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-bold text-stone-700 mb-1">
                 Password
               </label>
               <input
@@ -127,26 +135,26 @@ export const AuthPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                className="w-full px-3.5 py-2.5 bg-[#FAF7F0] border border-stone-300 rounded-xl text-[#2B2B2B] placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
               />
             </div>
 
             {isSignUp && (
-              <div className="space-y-4 pt-2 border-t border-slate-800">
-                <div className="flex items-center text-xs text-emerald-400 font-medium">
-                  <Globe className="w-3.5 h-3.5 mr-1.5" />
+              <div className="space-y-3 pt-2 border-t border-stone-200">
+                <div className="flex items-center text-xs text-emerald-700 font-bold">
+                  <HandDrawnSparkle size={14} washColor="#86EFAC" strokeColor="#065F46" className="mr-1" />
                   Initial Language Pair
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">
-                      Native / Support
+                    <label className="block text-[11px] text-stone-600 font-medium mb-1">
+                      Support Language
                     </label>
                     <select
                       value={nativeLanguage}
                       onChange={(e) => setNativeLanguage(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      className="w-full px-2.5 py-2 bg-[#FAF7F0] border border-stone-300 rounded-xl text-[#2B2B2B] text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     >
                       {COMMON_LANGUAGES.map((lang) => (
                         <option key={`native-${lang}`} value={lang}>
@@ -157,13 +165,13 @@ export const AuthPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">
+                    <label className="block text-[11px] text-stone-600 font-medium mb-1">
                       Target Language
                     </label>
                     <select
                       value={targetLanguage}
                       onChange={(e) => setTargetLanguage(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      className="w-full px-2.5 py-2 bg-[#FAF7F0] border border-stone-300 rounded-xl text-[#2B2B2B] text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     >
                       {COMMON_LANGUAGES.map((lang) => (
                         <option key={`target-${lang}`} value={lang}>
@@ -179,28 +187,25 @@ export const AuthPage: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-4 flex items-center justify-center py-2.5 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 font-semibold text-sm shadow-lg shadow-emerald-500/25 transition-all"
+              className="w-full mt-4 flex items-center justify-center py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 text-[#020617] font-bold text-sm shadow-md shadow-emerald-950/20 transition-all cursor-pointer"
             >
               {isSubmitting ? (
-                'Processing...'
+                'Connecting...'
               ) : isSignUp ? (
                 <>
-                  Create Account & Start Learning
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <HandDrawnPhone size={18} washColor="#BAF7D0" strokeColor="#020617" className="mr-2" />
+                  Create Account & Ring Buddy
+                  <ArrowRight className="w-4 h-4 ml-1.5" />
                 </>
               ) : (
                 <>
-                  Sign In
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <HandDrawnPhone size={18} washColor="#BAF7D0" strokeColor="#020617" className="mr-2" />
+                  Sign In to Call Buddy
+                  <ArrowRight className="w-4 h-4 ml-1.5" />
                 </>
               )}
             </button>
           </form>
-
-          <div className="mt-6 text-center text-xs text-slate-500 flex items-center justify-center space-x-1">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400 inline" />
-            <span>Spoken practice customized to your memory</span>
-          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.js';
-import { Settings, X, CheckCircle2, Sliders, Heart, Volume2 } from 'lucide-react';
+import { HandDrawnSettings, HandDrawnCross, HandDrawnCheck, HandDrawnHeart } from './HandDrawnIcons.js';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -77,35 +77,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   };
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl overflow-hidden relative">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+    <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div className="bg-[#FAF7F0] bg-sketchbook border border-stone-300 rounded-[32px] max-w-lg w-full p-6 sm:p-7 shadow-xl overflow-hidden relative text-[#2B2B2B]">
+        <div className="flex items-center justify-between pb-4 border-b border-stone-200">
           <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
-              <Settings className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-2xl bg-orange-100 border border-orange-200 text-[#2B2B2B] flex items-center justify-center shadow-2xs">
+              <HandDrawnSettings size={18} washColor="#FED7AA" strokeColor="#2B2B2B" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white leading-tight">Learner Settings</h3>
-              <p className="text-xs text-slate-400">Personalize voice tutor behavior & topics</p>
+              <h3 className="font-display font-bold text-base text-[#2B2B2B] leading-tight">
+                Learner Settings
+              </h3>
+              <p className="text-[11px] text-stone-500 font-medium">
+                Personalize voice tutor tempo & conversation topics
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full bg-white/80 hover:bg-white text-stone-600 flex items-center justify-center shadow-2xs border border-stone-200 cursor-pointer transition-colors"
           >
-            <X className="w-5 h-5" />
+            <HandDrawnCross size={16} washColor="#FECACA" strokeColor="#2B2B2B" />
           </button>
         </div>
 
-        <div className="mt-6 space-y-6 max-h-[60vh] overflow-y-auto pr-1">
+        <div className="mt-5 space-y-5 max-h-[60vh] overflow-y-auto pr-1">
           {/* Speech Rate Setting */}
-          <div>
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-2">
-              <span className="flex items-center">
-                <Volume2 className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
-                Tutor Speech Rate
+          <div className="p-3.5 rounded-2xl bg-white/90 border border-stone-200/80 shadow-2xs">
+            <div className="flex items-center justify-between text-xs font-bold text-[#2B2B2B] mb-2">
+              <span>Tutor Speech Rate</span>
+              <span className="font-mono text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full text-[11px]">
+                {speechRate}x
               </span>
-              <span className="text-emerald-400 font-mono">{speechRate}x</span>
             </div>
             <input
               type="range"
@@ -114,9 +117,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               step="0.05"
               value={speechRate}
               onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
-              className="w-full accent-emerald-500 cursor-pointer"
+              className="w-full accent-emerald-600 cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+            <div className="flex justify-between text-[10px] text-stone-500 font-medium mt-1">
               <span>0.8x (Slower)</span>
               <span>1.0x (Normal)</span>
               <span>1.2x (Native Speed)</span>
@@ -124,13 +127,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           </div>
 
           {/* Native Language Support Level */}
-          <div>
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-300 mb-2">
-              <span className="flex items-center">
-                <Sliders className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
-                Native Language Support Amount
-              </span>
-              <span className="text-slate-400 uppercase text-[10px] font-bold">
+          <div className="p-3.5 rounded-2xl bg-white/90 border border-stone-200/80 shadow-2xs">
+            <div className="flex items-center justify-between text-xs font-bold text-[#2B2B2B] mb-2">
+              <span>Native Language Scaffolding</span>
+              <span className="text-stone-500 uppercase text-[10px] font-bold">
                 {nativeLangSupport}
               </span>
             </div>
@@ -140,26 +140,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   key={level}
                   type="button"
                   onClick={() => setNativeLangSupport(level)}
-                  className={`py-2 px-3 rounded-xl border font-semibold capitalize transition-all cursor-pointer ${
+                  className={`py-2 px-3 rounded-xl border text-xs font-bold capitalize transition-all cursor-pointer ${
                     nativeLangSupport === level
-                      ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-bold shadow-md shadow-emerald-500/20'
-                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-800'
+                      ? 'bg-[#2B2B2B] text-white border-[#2B2B2B] shadow-2xs'
+                      : 'bg-[#FAF7F0] border-stone-300 text-stone-700 hover:bg-stone-100'
                   }`}
                 >
                   {level}
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-slate-500 mt-2">
-              {nativeLangSupport === 'low' && 'Tutor speaks almost exclusively in target language; answers in native language only when directly asked.'}
-              {nativeLangSupport === 'med' && 'Balanced immersion: tutor offers quick native translations for unfamiliar idioms.'}
-              {nativeLangSupport === 'high' && 'Frequent scaffolding: tutor explains complex grammar and difficult phrases in your native language.'}
+            <p className="text-[11px] text-stone-500 mt-2 leading-relaxed font-medium">
+              {nativeLangSupport === 'low' && 'Tutor speaks almost exclusively in target language; answers in English only when directly asked.'}
+              {nativeLangSupport === 'med' && 'Balanced immersion: tutor offers quick translations for unfamiliar idioms.'}
+              {nativeLangSupport === 'high' && 'Frequent scaffolding: tutor explains complex grammar in English when you hesitate.'}
             </p>
           </div>
 
           {/* Default Session Length */}
-          <div>
-            <span className="block text-xs font-semibold text-slate-300 mb-2">
+          <div className="p-3.5 rounded-2xl bg-white/90 border border-stone-200/80 shadow-2xs">
+            <span className="block text-xs font-bold text-[#2B2B2B] mb-2">
               Default Session Length
             </span>
             <div className="flex space-x-2">
@@ -168,22 +168,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   key={mins}
                   type="button"
                   onClick={() => setDefaultSessionMinutes(mins)}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     defaultSessionMinutes === mins
-                      ? 'bg-emerald-500 text-slate-950 font-bold'
-                      : 'bg-slate-950 border border-slate-800 text-slate-300 hover:bg-slate-800'
+                      ? 'bg-[#2B2B2B] text-white shadow-2xs'
+                      : 'bg-[#FAF7F0] border border-stone-300 text-stone-700 hover:bg-stone-100'
                   }`}
                 >
-                  {mins} min
+                  {mins}m
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Learner Interests / Conversation Topics */}
-          <div>
-            <div className="flex items-center text-xs font-semibold text-slate-300 mb-2">
-              <Heart className="w-3.5 h-3.5 mr-1.5 text-rose-400" />
+          {/* Conversation Interests */}
+          <div className="p-3.5 rounded-2xl bg-white/90 border border-stone-200/80 shadow-2xs">
+            <div className="flex items-center text-xs font-bold text-[#2B2B2B] mb-2">
+              <HandDrawnHeart size={14} washColor="#FECACA" strokeColor="#2B2B2B" className="mr-1.5" />
               Conversation Interests (used by Planner)
             </div>
             <div className="flex flex-wrap gap-1.5 mb-3">
@@ -194,10 +194,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     key={item}
                     type="button"
                     onClick={() => toggleInterest(item)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer ${
+                    className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
                       selected
-                        ? 'bg-emerald-500/20 border border-emerald-500 text-emerald-300'
-                        : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200'
+                        ? 'bg-emerald-100 border border-emerald-400 text-emerald-950 shadow-2xs'
+                        : 'bg-[#FAF7F0] border border-stone-300 text-stone-600 hover:bg-stone-100'
                     }`}
                   >
                     {selected ? '✓ ' : '+ '}
@@ -213,11 +213,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 value={customInterest}
                 onChange={(e) => setCustomInterest(e.target.value)}
                 placeholder="Add custom topic (e.g. Scuba diving, startups)..."
-                className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="flex-1 px-3 py-2 bg-[#FAF7F0] border border-stone-300 rounded-xl text-xs text-[#2B2B2B] placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
               />
               <button
                 type="submit"
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold cursor-pointer"
+                className="px-3.5 py-2 bg-[#2B2B2B] hover:bg-stone-800 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-2xs"
               >
                 Add
               </button>
@@ -225,10 +225,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           </div>
         </div>
 
-        <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
+        <div className="mt-5 pt-3 border-t border-stone-200 flex items-center justify-between">
           {saveSuccess ? (
-            <span className="flex items-center text-xs text-emerald-400 font-semibold">
-              <CheckCircle2 className="w-4 h-4 mr-1.5" />
+            <span className="flex items-center text-xs text-emerald-700 font-bold">
+              <HandDrawnCheck size={14} washColor="#86EFAC" strokeColor="#065F46" className="mr-1" />
               Settings Saved!
             </span>
           ) : (
@@ -239,7 +239,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium cursor-pointer"
+              className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-bold cursor-pointer transition-colors"
             >
               Cancel
             </button>
@@ -247,7 +247,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50"
+              className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-stone-900 font-bold rounded-xl text-xs shadow-xs transition-all cursor-pointer disabled:opacity-50"
             >
               {isSaving ? 'Saving...' : 'Save Settings'}
             </button>
