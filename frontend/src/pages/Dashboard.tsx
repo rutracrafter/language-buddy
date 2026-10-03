@@ -255,7 +255,7 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-6xl mx-auto px-3.5 sm:px-6 py-4 sm:py-8">
       {/* Welcome & Status Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
         <div>

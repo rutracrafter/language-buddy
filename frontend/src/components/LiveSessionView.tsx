@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Mic,
   MicOff,
@@ -17,6 +17,9 @@ import {
   Award,
   ShieldCheck,
   ShieldAlert,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
 } from 'lucide-react';
 import { LiveTranscriptItem, LiveSessionStatus } from '../hooks/useGeminiLive.js';
 
@@ -69,6 +72,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
   onStopSession,
   onReturnToDashboard,
 }) => {
+  const [mobileTranscriptOpen, setMobileTranscriptOpen] = useState(false);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll transcript to bottom as new speech arrives
@@ -470,8 +474,26 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
           )}
         </div>
 
-        {/* Right Column: Live Transcripts */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col h-[480px]">
+        {/* Mobile Transcript Toggle Button */}
+        <div className="lg:hidden w-full">
+          <button
+            type="button"
+            onClick={() => setMobileTranscriptOpen(!mobileTranscriptOpen)}
+            className="w-full py-2.5 px-4 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-between text-xs text-slate-300 active:bg-slate-800 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center space-x-2">
+              <MessageSquare className="w-4 h-4 text-emerald-400" />
+              <span className="font-bold">Live Transcript ({transcript.length} turns)</span>
+            </div>
+            <div className="flex items-center space-x-1 text-emerald-400 font-semibold text-[11px]">
+              <span>{mobileTranscriptOpen ? 'Collapse' : 'Expand'}</span>
+              {mobileTranscriptOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </div>
+          </button>
+        </div>
+
+        {/* Right Column: Live Transcripts (Desktop: column; Mobile: expandable drawer) */}
+        <div className={`${mobileTranscriptOpen ? 'flex' : 'hidden'} lg:flex lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex-col h-[320px] sm:h-[400px] lg:h-[480px]`}>
           <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
             <div className="flex items-center space-x-2">
               <span className="relative flex h-2.5 w-2.5">

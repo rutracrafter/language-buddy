@@ -1,0 +1,18 @@
+{
+  "short_name": "LanguageBuddy",
+  "name": "Language Buddy — Audio-First Spoken Learning",
+  "description": "Adaptive spoken language practice with Gemini Live voice AI",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait"
+}
