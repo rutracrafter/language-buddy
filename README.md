@@ -30,23 +30,17 @@ An audio-first (speaking and listening) language learning application powered by
 
 ---
 
-## Native Mobile App (Expo SDK 57 / React Native)
+## Mobile Experience (PWA / Add to Home Screen)
 
-A native mobile client built with **Expo Router** and **React Native**:
+The web application is built with a responsive, mobile-first design and configured as a standalone **Progressive Web App (PWA)**:
 
-1. **Navigate to the mobile directory and start Expo:**
-   ```bash
-   cd mobile
-   npx expo start
-   ```
-
-2. **Run on your device:**
-   - **Physical iPhone / Android**: Install the free **Expo Go** app from the App Store / Play Store. Open your camera (iOS) or the Expo Go app (Android) and scan the QR code displayed in your terminal.
-   - **iOS Simulator**: Press `i` in the terminal.
-   - **Android Emulator**: Press `a` in the terminal.
-
-3. **Connecting to the Backend from a Physical Phone**:
-   - In the mobile app's **Settings** tab, update the **Backend Server Address** to your laptop's local Wi-Fi IP (e.g. `http://192.168.1.50:8081`).
+1. **Open on your phone**:
+   Connect your phone to the same Wi-Fi network and open `http://<your-computer-ip>:8088` (or use the local HTTPS proxy at `https://<your-computer-ip>:8443` via Caddy).
+2. **Add to Home Screen**:
+   - **iOS (Safari)**: Tap the **Share** button $\to$ tap **Add to Home Screen** $\to$ tap **Add**.
+   - **Android (Chrome)**: Tap the **three dots menu** $\to$ tap **Install app** or **Add to Home screen**.
+3. **Launch like a native app**:
+   Launches full-screen with its own app icon, without browser navigation bars, with hardware-accelerated audio streaming, Voice Orb, and live transcription.
 
 ---
 
@@ -57,8 +51,7 @@ The application consists of the following components:
 | Layer | Technology | Port / Platform | Description |
 |---|---|---|---|
 | `api` | Node.js, Express, TypeScript | Internal (`3000`) | Auth, ephemeral Live tokens, planner/analyst, FSRS scheduling |
-| `frontend` | React 19, Vite, Tailwind CSS, Nginx | Exposed (`8080` / `8081`) | Responsive web dashboard, mic audio & live transcripts |
-| `mobile` | Expo SDK 57, Expo Router, React Native | iOS / Android / Web | Native mobile app with Voice Orb, slide-up transcript sheet, and offline-ready FSRS |
+| `frontend` | React 19, Vite, Tailwind CSS, Nginx | Exposed (`8088`) | Responsive mobile & desktop UI, Web Audio mic streaming, live transcripts, PWA |
 | `db` | MongoDB 7 (`mongo:7`) | Internal (`27017`) | Persistent storage for users, profiles, items, reviews, sessions |
 
 ---
@@ -79,7 +72,6 @@ To develop with live hot-reloading:
 Alternatively, run locally without Docker (requires a running MongoDB instance):
 - **Backend:** `cd api && npm install && npm run dev` (runs on `http://localhost:3000`)
 - **Frontend:** `cd frontend && npm install && npm run dev` (runs on `http://localhost:5173`)
-- **Mobile:** `cd mobile && npx expo start`
 
 ---
 
@@ -91,4 +83,4 @@ Alternatively, run locally without Docker (requires a running MongoDB instance):
 - [x] **Phase 3 — Spaced Repetition**: FSRS algorithm integration (`ts-fsrs`), recognition to production graduation, item caps, session-length picker & free conversation mode.
 - [x] **Phase 4 — Placement**: ACTFL OPI-style placement interview conversation, task ladder, `log_level_signal`, placement analyst & starter items.
 - [x] **Phase 5 — Polish**: Voice settings, Caddy HTTPS proxy for mobile microphone access, backups script (`mongodump` & `mongorestore`).
-- [x] **Mobile App**: Dedicated Expo SDK 57 / React Native mobile layer with Expo Router, Voice Orb, slide-up transcript sheet, and mobile auth.
+- [x] **Mobile PWA & Responsive UI**: Mobile-first responsive touch layout, full-screen standalone PWA support, iOS safe-area insets, and drawer transcript controls.
