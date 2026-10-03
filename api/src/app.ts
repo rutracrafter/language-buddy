@@ -5,6 +5,7 @@ import { authMiddleware } from './middleware/auth.js';
 import { authRouter } from './routes/auth.js';
 import { profileRouter } from './routes/profile.js';
 import { healthRouter } from './routes/health.js';
+import { sessionsRouter } from './routes/sessions.js';
 
 export function createApp() {
   const app = express();
@@ -36,6 +37,7 @@ export function createApp() {
   app.use('/api/health', healthRouter);
   app.use('/api/auth', authRouter);
   app.use('/api/profile', profileRouter);
+  app.use('/api/sessions', sessionsRouter);
 
   // 404 for API
   app.use('/api/*', (_req, res) => {
