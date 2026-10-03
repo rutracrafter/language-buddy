@@ -26,6 +26,7 @@ export interface StartSessionOptions {
   nativeLanguage?: string;
   targetLanguage?: string;
   topic?: string;
+  speechRate?: number;
 }
 
 export function useGeminiLive() {
@@ -34,6 +35,7 @@ export function useGeminiLive() {
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [speechRate, setSpeechRateState] = useState(1.0);
   const [micVolume, setMicVolume] = useState(0);
   const [agentSpeaking, setAgentSpeaking] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -192,7 +194,10 @@ export function useGeminiLive() {
         mediaStreamRef.current = stream;
 
         // Step 3: Initialize audio playback queue
+        const initialSpeechRate = options.speechRate || 1.0;
         audioPlayerRef.current = new LiveAudioPlayer();
+        audioPlayerRef.current.setPlaybackRate(initialSpeechRate);
+        setSpeechRateState(initialSpeechRate);
 
         // Step 4: Setup AudioContext & ScriptProcessor to capture PCM 16kHz
         const AudioCtx =
@@ -497,12 +502,18 @@ export function useGeminiLive() {
     setIsMuted((prev) => !prev);
   }, []);
 
+  const updateSpeechRate = useCallback((rate: number) => {
+    setSpeechRateState(rate);
+    audioPlayerRef.current?.setPlaybackRate(rate);
+  }, []);
+
   return {
     status,
     sessionType,
     error,
     sessionId,
     isMuted,
+    speechRate,
     micVolume,
     agentSpeaking,
     elapsedSeconds,
@@ -512,6 +523,7 @@ export function useGeminiLive() {
     startSession,
     stopSession,
     toggleMute,
+    updateSpeechRate,
     resetSession: () => {
       cleanupAudio();
       setStatus('idle');

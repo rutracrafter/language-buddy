@@ -66,6 +66,20 @@ export class LiveAudioPlayer {
   private ctx: AudioContext | null = null;
   private nextPlayTime = 0;
   private activeSources: AudioBufferSourceNode[] = [];
+  public playbackRate: number = 1.0;
+
+  public setPlaybackRate(rate: number): void {
+    if (rate >= 0.5 && rate <= 2.0) {
+      this.playbackRate = rate;
+      for (const source of this.activeSources) {
+        try {
+          source.playbackRate.value = rate;
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }
 
   public getContext(): AudioContext {
     if (!this.ctx || this.ctx.state === 'closed') {
@@ -90,12 +104,14 @@ export class LiveAudioPlayer {
 
     const source = ctx.createBufferSource();
     source.buffer = buffer;
+    source.playbackRate.value = this.playbackRate;
     source.connect(ctx.destination);
 
     const currentTime = ctx.currentTime;
     const startTime = Math.max(currentTime, this.nextPlayTime);
     source.start(startTime);
-    this.nextPlayTime = startTime + buffer.duration;
+    const effectiveDuration = buffer.duration / this.playbackRate;
+    this.nextPlayTime = startTime + effectiveDuration;
 
     this.activeSources.push(source);
     source.onended = () => {

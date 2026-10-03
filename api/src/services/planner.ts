@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { ObjectId } from 'mongodb';
 import { getCollections } from '../db.js';
 import { LearnerProfile, BuildOnNote, TopicCoverage, LearningItem } from '../types.js';
+import { getLanguagePacingGuidelines } from './languageGuidelines.js';
 
 export interface SessionPlan {
   topic: string;
@@ -28,6 +29,7 @@ export async function generateSessionPlan(
     nativeLanguage?: string;
     targetLanguage?: string;
     requestedTopic?: string;
+    speechRate?: number;
   }
 ): Promise<SessionPlan> {
   const collections = getCollections();
@@ -36,6 +38,7 @@ export async function generateSessionPlan(
   const nativeLanguage = options.nativeLanguage || profile?.nativeLanguage || 'English';
   const targetLanguage = options.targetLanguage || profile?.targetLanguage || 'Spanish';
   const cefrLevel = profile?.level?.overall || 'A1';
+  const speechRate = options.speechRate || profile?.preferences?.speechRate || 1.0;
 
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -166,6 +169,8 @@ PLANNING REQUIREMENTS:
     const newItems = (parsed.newItemsToIntroduce || []).slice(0, maxNewItemsAllowed);
     const weakSpots = parsed.errorPatternsToAddress || [];
 
+    const pacingGuidelines = getLanguagePacingGuidelines(nativeLanguage, targetLanguage, speechRate);
+
     const systemInstruction = `You are Language Buddy, a friendly, encouraging personal voice tutor helping the learner practice speaking.
 
 LANGUAGE RULES:
@@ -174,14 +179,11 @@ LANGUAGE RULES:
 - Strictly use ONLY these two languages. Never use any third language.
 - Spoken practice is conducted primarily in ${targetLanguage}.
 
-CODE-SWITCHING RULE:
-- The learner may ask questions in ${nativeLanguage} at any time (e.g. "What does that word mean?", "How do you say...", or asking for clarification).
-- When the learner asks a question in ${nativeLanguage}, answer clearly and concisely in ${nativeLanguage}.
-- Immediately after answering in ${nativeLanguage}, smoothly prompt the learner to resume speaking in ${targetLanguage}.
+${pacingGuidelines}
 
 LEVEL & PACING (CEFR ${cefrLevel}):
 - Speak at CEFR ${cefrLevel}.
-- Keep turns concise (1 to 3 short sentences at a time) so the learner has ample space to speak and is not overwhelmed.
+- Keep turns concise (1 to 2 short sentences at a time) so the learner has ample space to speak and is not overwhelmed.
 - Pronounce clearly with accessible vocabulary suitable for ${cefrLevel}.
 
 SESSION PLAN & GOAL:

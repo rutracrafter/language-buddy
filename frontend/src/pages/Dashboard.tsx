@@ -197,6 +197,7 @@ export const Dashboard: React.FC = () => {
       nativeLanguage,
       targetLanguage,
       topic: requestedTopic.trim() || undefined,
+      speechRate: profile?.preferences?.speechRate ?? 1.0,
     });
   };
 
@@ -207,6 +208,7 @@ export const Dashboard: React.FC = () => {
       nativeLanguage,
       targetLanguage,
       topic: 'ACTFL Oral Proficiency Placement Interview',
+      speechRate: profile?.preferences?.speechRate ?? 1.0,
     });
   };
 
@@ -226,6 +228,7 @@ export const Dashboard: React.FC = () => {
         sessionType={liveSession.sessionType}
         error={liveSession.error}
         isMuted={liveSession.isMuted}
+        speechRate={liveSession.speechRate}
         micVolume={liveSession.micVolume}
         agentSpeaking={liveSession.agentSpeaking}
         elapsedSeconds={liveSession.elapsedSeconds}
@@ -241,6 +244,7 @@ export const Dashboard: React.FC = () => {
             : requestedTopic || 'Everyday conversation & vocabulary practice'
         }
         onToggleMute={liveSession.toggleMute}
+        onUpdateSpeechRate={liveSession.updateSpeechRate}
         onStopSession={liveSession.stopSession}
         onReturnToDashboard={handleReturnToDashboard}
       />

@@ -23,6 +23,7 @@ interface LiveSessionViewProps {
   sessionType?: 'placement' | 'practice';
   error: string | null;
   isMuted: boolean;
+  speechRate?: number;
   micVolume: number;
   agentSpeaking: boolean;
   elapsedSeconds: number;
@@ -34,6 +35,7 @@ interface LiveSessionViewProps {
   cefrLevel: string;
   topic?: string;
   onToggleMute: () => void;
+  onUpdateSpeechRate?: (rate: number) => void;
   onStopSession: () => void;
   onReturnToDashboard: () => void;
 }
@@ -43,6 +45,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
   sessionType = 'practice',
   error,
   isMuted,
+  speechRate = 1.0,
   micVolume,
   agentSpeaking,
   elapsedSeconds,
@@ -54,6 +57,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
   cefrLevel,
   topic,
   onToggleMute,
+  onUpdateSpeechRate,
   onStopSession,
   onReturnToDashboard,
 }) => {
@@ -495,7 +499,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
       </div>
 
       {/* Bottom Controls Card */}
-      <div className="mt-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+      <div className="mt-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center space-x-3">
           <button
             onClick={onToggleMute}
@@ -508,6 +512,27 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
             {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             <span>{isMuted ? 'Unmute Mic' : 'Mute Mic'}</span>
           </button>
+
+          {/* Real-time tutor speed selector */}
+          {onUpdateSpeechRate && (
+            <div className="hidden sm:flex items-center space-x-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+              <span className="text-slate-400 mr-1 text-[11px]">Tutor Speed:</span>
+              {[0.8, 0.9, 1.0, 1.1, 1.2].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => onUpdateSpeechRate(r)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold transition-colors cursor-pointer ${
+                    Math.abs(speechRate - r) < 0.04
+                      ? 'bg-emerald-500 text-slate-950'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {r}x
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <button

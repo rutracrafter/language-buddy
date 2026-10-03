@@ -58,13 +58,14 @@ sessionsRouter.post('/start', async (req: Request, res: Response) => {
     const userNative = nativeLanguage || profile?.nativeLanguage || 'English';
     const userTarget = targetLanguage || profile?.targetLanguage || 'Spanish';
     const cefrLevel = profile?.level?.overall || 'A1';
+    const speechRate = profile?.preferences?.speechRate ?? 1.0;
 
     let systemInstruction = '';
     let planData: Record<string, unknown> = {};
     let sessionTopic = requestedTopic || 'Everyday conversation';
 
     if (type === 'placement') {
-      systemInstruction = buildPlacementSystemInstruction(userNative, userTarget, cefrLevel);
+      systemInstruction = buildPlacementSystemInstruction(userNative, userTarget, cefrLevel, speechRate);
       sessionTopic = 'ACTFL OPI Oral Proficiency Placement Interview';
       planData = {
         type: 'placement',
@@ -79,6 +80,7 @@ sessionsRouter.post('/start', async (req: Request, res: Response) => {
         nativeLanguage: userNative,
         targetLanguage: userTarget,
         requestedTopic,
+        speechRate,
       });
 
       systemInstruction = plan.systemInstruction;
@@ -139,6 +141,7 @@ sessionsRouter.post('/start', async (req: Request, res: Response) => {
       languages: sessionDoc.languages,
       level: cefrLevel,
       topic: sessionTopic,
+      speechRate,
       type,
       plan: planData,
     });

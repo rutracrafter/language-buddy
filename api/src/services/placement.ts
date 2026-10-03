@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { getCollections } from '../db.js';
 import { CEFRLevel, LearnerProfile, Session, LearningItem } from '../types.js';
 import { createInitialFsrsCard } from './fsrs.js';
+import { getLanguagePacingGuidelines } from './languageGuidelines.js';
 
 function getGenAI(): GoogleGenAI {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -15,8 +16,11 @@ function getGenAI(): GoogleGenAI {
 export function buildPlacementSystemInstruction(
   nativeLanguage: string,
   targetLanguage: string,
-  initialEstimate: string = 'A1'
+  initialEstimate: string = 'A1',
+  speechRate: number = 1.0
 ): string {
+  const pacingGuidelines = getLanguagePacingGuidelines(nativeLanguage, targetLanguage, speechRate);
+
   return `You are an expert ACTFL-certified oral proficiency interviewer and compassionate language tutor for Language Buddy.
 You are conducting a spoken placement interview to determine the learner's CEFR level (A1 to C1) in ${targetLanguage}.
 
@@ -24,7 +28,8 @@ LANGUAGES:
 - Learner's native/support language: ${nativeLanguage}
 - Target language: ${targetLanguage}
 - Use ONLY these two languages.
-- If the learner asks a question or freezes in ${nativeLanguage}, briefly comfort and guide them in ${nativeLanguage}, then return to ${targetLanguage}.
+
+${pacingGuidelines}
 
 INTERVIEW PHASES (Model: ACTFL Oral Proficiency Interview):
 1. Warm-Up (A1):
