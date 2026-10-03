@@ -7,14 +7,14 @@ function getDefaultApiUrl(): string {
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
     const ip = hostUri.split(':')[0];
-    return `http://${ip}:8081`;
+    return `http://${ip}:8088`;
   }
 
   if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:8081';
+    return 'http://10.0.2.2:8088';
   }
 
-  return 'http://localhost:8081';
+  return 'http://localhost:8088';
 }
 
 let cachedApiUrl: string | null = null;
