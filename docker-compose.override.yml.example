@@ -1,0 +1,19 @@
+# Optional: rename this file to docker-compose.override.yml for local development with hot reload.
+# Docker Compose will automatically merge it with docker-compose.yml.
+
+services:
+  api:
+    command: npm run dev
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
+  frontend:
+    command: npx vite --host 0.0.0.0 --port 80
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
