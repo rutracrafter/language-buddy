@@ -287,16 +287,28 @@ export function useGeminiLive() {
               setError(errMsg);
               setStatus('error');
             },
-            onclose: (closeEvent: unknown) => {
+            onclose: (closeEvent: any) => {
               console.log('Gemini Live closed:', closeEvent);
-              setStatus((prev) => (prev === 'finishing' ? 'finished' : 'idle'));
+              setStatus((prev) => {
+                if (prev === 'finishing') return 'finished';
+                // If closed unexpectedly or with an error code, display error state instead of dropping to home
+                if (closeEvent && closeEvent.code !== 1000 && closeEvent.code !== 1005) {
+                  setError(
+                    `Connection interrupted (code ${closeEvent.code}${
+                      closeEvent.reason ? ': ' + closeEvent.reason : ''
+                    }).`
+                  );
+                  return 'error';
+                }
+                return 'idle';
+              });
             },
           },
         });
 
         sessionRef.current = liveSession;
 
-        // Step 6: Hook microphone audio processor to send PCM chunks
+        // Step 6: Hook microphone audio processor to send PCM chunks using { media: { ... } }
         processor.onaudioprocess = (e: AudioProcessingEvent) => {
           if (isMutedRef.current || !sessionRef.current) return;
 
@@ -315,8 +327,9 @@ export function useGeminiLive() {
           const base64Audio = int16ToBase64(pcm16);
 
           try {
+            // MLDev Live API expects 'media' field which maps to mediaChunks
             sessionRef.current.sendRealtimeInput({
-              audio: {
+              media: {
                 data: base64Audio,
                 mimeType: 'audio/pcm;rate=16000',
               },

@@ -239,9 +239,20 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
           </div>
 
           {error && (
-            <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start space-x-2 text-left">
-              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
-              <span>{error}</span>
+            <div className="mt-4 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex flex-col space-y-2.5 text-left w-full">
+              <div className="flex items-start space-x-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+              <div className="flex space-x-2 pt-1">
+                <button
+                  type="button"
+                  onClick={onReturnToDashboard}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition-colors"
+                >
+                  Back to Dashboard
+                </button>
+              </div>
             </div>
           )}
         </div>
