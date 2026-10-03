@@ -1,0 +1,15 @@
+# Caddy configuration for local HTTPS reverse proxy
+# Enables microphone testing from mobile phones or other devices on local network
+
+{
+    # Internal self-signed CA for local domain / IP
+    local_certs
+}
+
+# Replace :8443 or your local IP/hostname (e.g. https://my-laptop.local:8443)
+:8443 {
+    tls internal
+
+    # Proxy all traffic to the frontend Nginx service
+    reverse_proxy frontend:80
+}

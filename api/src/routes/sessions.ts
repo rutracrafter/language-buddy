@@ -219,6 +219,42 @@ sessionsRouter.post('/:id/finish', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/sessions/:id/analyze — Retry analyst run on existing session transcript
+sessionsRouter.post('/:id/analyze', async (req: Request, res: Response) => {
+  try {
+    const rawId = req.params.id;
+    const sessionIdStr = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!sessionIdStr || !ObjectId.isValid(sessionIdStr)) {
+      res.status(400).json({ error: 'Invalid session ID' });
+      return;
+    }
+
+    const collections = getCollections();
+    const sessionId = new ObjectId(sessionIdStr);
+    const session = await collections.sessions.findOne({
+      _id: sessionId,
+      userId: req.userId!,
+    });
+
+    if (!session) {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+
+    let analysis: any = null;
+    if (session.type === 'placement') {
+      analysis = await runPlacementAnalyst(sessionId);
+    } else {
+      analysis = await runAnalyst(sessionId);
+    }
+
+    res.json({ ok: true, sessionId: sessionIdStr, analysis });
+  } catch (error) {
+    console.error('Retry analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze session' });
+  }
+});
+
 // GET /api/sessions/recent — Return recent sessions for history display
 sessionsRouter.get('/recent', async (req: Request, res: Response) => {
   try {

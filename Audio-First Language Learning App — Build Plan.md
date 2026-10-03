@@ -83,12 +83,12 @@ Each phase starts only when the previous gate passes. No dates are set yet; Phas
 
 ### Phase 5 — Polish
 
-- [ ] Learner-facing settings: speech rate, native-language support amount, interests
-- [ ] Error and retry handling for dropped connections and failed analyst runs
-- [ ] Cost and latency monitoring per session
-- [ ] Backup script (`mongodump`) and a tested restore
-- [ ] HTTPS reverse proxy (e.g. Caddy) so phones on the local network can use the mic
-- [ ] Small pilot with real learners
+- [x] Learner-facing settings: speech rate, native-language support amount, interests
+- [x] Error and retry handling for dropped connections and failed analyst runs
+- [x] Cost and latency monitoring per session
+- [x] Backup script (`mongodump`) and a tested restore
+- [x] HTTPS reverse proxy (e.g. Caddy) so phones on the local network can use the mic
+- [x] Small pilot with real learners
 
 ## Testing and evaluation
 
