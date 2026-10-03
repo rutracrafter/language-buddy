@@ -228,13 +228,17 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
           </div>
 
           {/* Quick Tip Pill */}
-          <div className="mt-6 p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-xs text-slate-400 flex items-start space-x-2 text-left">
-            <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <span className="font-semibold text-slate-200">Bilingual Support:</span>
-              <br />
-              Need a word or grammar tip? Ask in{' '}
-              <strong className="text-emerald-400">{nativeLanguage}</strong> anytime!
+          <div className="mt-5 space-y-2 w-full">
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 text-xs text-slate-400 flex items-start space-x-2 text-left">
+              <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold text-slate-200">Bilingual Support:</span>
+                <br />
+                Need help? Ask in <strong className="text-emerald-400">{nativeLanguage}</strong> anytime!
+              </div>
+            </div>
+            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60 text-[11px] text-slate-500 text-center">
+              🎧 Headphones recommended to avoid audio feedback
             </div>
           </div>
 

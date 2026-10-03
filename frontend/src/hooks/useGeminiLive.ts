@@ -224,7 +224,6 @@ export function useGeminiLive() {
             inputAudioTranscription: {},
             outputAudioTranscription: {},
             sessionResumption: {},
-            contextWindowCompression: {},
           },
           callbacks: {
             onopen: () => {
@@ -278,6 +277,7 @@ export function useGeminiLive() {
               // Turn completion
               if (sc.turnComplete) {
                 setAgentSpeaking(false);
+                currentSpeakerRef.current = null;
               }
             },
             onerror: (err: unknown) => {
@@ -308,7 +308,27 @@ export function useGeminiLive() {
 
         sessionRef.current = liveSession;
 
-        // Step 6: Hook microphone audio processor to send PCM chunks using { media: { ... } }
+        // Step 6: Trigger the tutor to speak first and greet the learner warmly
+        const targetLang = options.targetLanguage || 'Spanish';
+        try {
+          liveSession.sendClientContent({
+            turns: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    text: `Please begin our conversation right now. Greet me warmly in ${targetLang} and ask your opening question to start our practice session!`,
+                  },
+                ],
+              },
+            ],
+            turnComplete: true,
+          });
+        } catch (initErr) {
+          console.warn('Failed to send opening tutor prompt:', initErr);
+        }
+
+        // Step 7: Hook microphone audio processor to stream PCM chunks
         processor.onaudioprocess = (e: AudioProcessingEvent) => {
           if (isMutedRef.current || !sessionRef.current) return;
 
@@ -327,9 +347,8 @@ export function useGeminiLive() {
           const base64Audio = int16ToBase64(pcm16);
 
           try {
-            // MLDev Live API expects 'media' field which maps to mediaChunks
             sessionRef.current.sendRealtimeInput({
-              media: {
+              audio: {
                 data: base64Audio,
                 mimeType: 'audio/pcm;rate=16000',
               },
