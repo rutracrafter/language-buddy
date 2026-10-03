@@ -21,6 +21,7 @@ interface SettingsTabProps {
   }) => Promise<void>;
   onLogout: () => void;
   onRestartOnboarding: () => void;
+  onStartPlacement: () => void;
 }
 
 const COMMON_INTERESTS = [
@@ -45,6 +46,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   onSave,
   onLogout,
   onRestartOnboarding,
+  onStartPlacement,
 }) => {
   const [nativeLanguage, setNativeLanguage] = useState(initialNative);
   const [targetLanguage, setTargetLanguage] = useState(initialTarget);
@@ -263,6 +265,27 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       >
         {isSaving ? 'Saving...' : 'Save Preferences'}
       </button>
+
+      {/* Oral Placement Interview Section */}
+      <div className="p-4 rounded-3xl bg-white/90 shadow-xs border border-stone-200/80">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="font-bold text-xs text-[#2B2B2B] block">
+              Oral Placement Interview (ACTFL OPI)
+            </span>
+            <span className="text-[11px] text-stone-500 font-medium">
+              Calibrate speaking floor and ceiling levels
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onStartPlacement}
+            className="px-3.5 py-1.5 bg-[#2B2B2B] hover:bg-stone-800 text-white rounded-xl text-[11px] font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+          >
+            Start OPI
+          </button>
+        </div>
+      </div>
 
       {/* Onboarding Restart Section */}
       <div className="p-4 rounded-3xl bg-white/90 shadow-xs border border-stone-200/80">

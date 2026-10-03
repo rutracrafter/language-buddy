@@ -2,34 +2,27 @@ import React from 'react';
 import {
   HandDrawnPhone,
   HandDrawnShuffle,
-  HandDrawnSparkle,
 } from '../HandDrawnIcons.js';
 import { BUDDY_ASSETS } from '../../assets/buddyAssets.js';
 
 interface PracticeTabProps {
   targetLanguage: string;
-  nativeLanguage: string;
   onStartSession: (type: 'placement' | 'practice') => void;
   dailyPrompt: { category: string; title: string; teaser: string };
   onShufflePrompt: () => void;
   requestedTopic: string;
   onSelectTopic: (topic: string) => void;
   onClearTopic: () => void;
-  placementCompleted: boolean;
-  onOpenLanguagePicker: () => void;
 }
 
 export const PracticeTab: React.FC<PracticeTabProps> = ({
   targetLanguage,
-  nativeLanguage,
   onStartSession,
   dailyPrompt,
   onShufflePrompt,
   requestedTopic,
   onSelectTopic,
   onClearTopic,
-  placementCompleted,
-  onOpenLanguagePicker,
 }) => {
   return (
     <div className="space-y-4">
@@ -88,52 +81,6 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
             </div>
           ) : null}
         </div>
-      </div>
-
-      {/* Placement Interview Banner if not completed */}
-      {!placementCompleted && (
-        <div className="p-4 rounded-3xl bg-gradient-to-br from-[#FFE3D6] via-[#FFD8C7] to-[#FFCEB8] shadow-xs text-left relative overflow-hidden border border-orange-200/50">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-950">
-              <HandDrawnSparkle size={15} washColor="#FEF08A" strokeColor="#2B2B2B" />
-              <span>Placement Check</span>
-            </div>
-            <span className="text-[10px] font-semibold text-orange-800 bg-white/60 px-2 py-0.5 rounded-full">
-              Oral Interview
-            </span>
-          </div>
-          <h4 className="font-display font-bold text-sm text-[#2B2B2B]">
-            Calibrate Your {targetLanguage} Level
-          </h4>
-          <p className="text-xs text-[#2B2B2B]/80 mt-1 leading-relaxed">
-            Take a short ACTFL OPI conversation so Buddy can determine your speaking floor and ceiling.
-          </p>
-          <button
-            onClick={() => onStartSession('placement')}
-            className="mt-3 w-full py-2.5 px-4 rounded-2xl bg-[#2B2B2B] hover:bg-stone-800 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs cursor-pointer transition-all"
-          >
-            <span>Start Placement Interview</span>
-            <HandDrawnPhone size={14} washColor="#86EFAC" strokeColor="#FFFFFF" />
-          </button>
-        </div>
-      )}
-
-      {/* Language Quick Switcher Card */}
-      <div className="p-3.5 rounded-3xl bg-white/90 shadow-xs border border-stone-200/80 flex items-center justify-between">
-        <div>
-          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
-            Practicing
-          </span>
-          <span className="text-sm font-extrabold text-[#2B2B2B]">
-            {targetLanguage} <span className="text-stone-400 font-normal">({nativeLanguage} support)</span>
-          </span>
-        </div>
-        <button
-          onClick={onOpenLanguagePicker}
-          className="px-3 py-1.5 rounded-xl bg-[#FAF7F0] hover:bg-stone-200/70 border border-stone-300 text-xs font-bold text-stone-700 transition-colors cursor-pointer"
-        >
-          Change
-        </button>
       </div>
 
       {/* Not sure what to discuss? Daily Prompts */}

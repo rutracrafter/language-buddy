@@ -7,7 +7,6 @@ import { PracticeTab } from '../components/tabs/PracticeTab.js';
 import { HistoryTab } from '../components/tabs/HistoryTab.js';
 import { MeTab } from '../components/tabs/MeTab.js';
 import { SettingsTab } from '../components/tabs/SettingsTab.js';
-import { LanguagePickerModal } from '../components/LanguagePickerModal.js';
 
 const AVAILABLE_LANGUAGES = [
   'English',
@@ -57,7 +56,6 @@ export const Dashboard: React.FC = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [promptIndex, setPromptIndex] = useState(0);
   const [requestedTopic, setRequestedTopic] = useState('');
-  const [showLanguageModal, setShowLanguageModal] = useState(false);
 
   // Memory & SRS State
   const [dashboardMetrics, setDashboardMetrics] = useState<{
@@ -130,19 +128,6 @@ export const Dashboard: React.FC = () => {
 
   const handleShufflePrompt = () => {
     setPromptIndex((prev) => (prev + 1) % DAILY_PROMPTS.length);
-  };
-
-  const handleSaveLanguages = async (newNative: string, newTarget: string) => {
-    setNativeLanguage(newNative);
-    setTargetLanguage(newTarget);
-    try {
-      await updateProfile({
-        nativeLanguage: newNative,
-        targetLanguage: newTarget,
-      });
-    } catch (err) {
-      console.error('Failed to save languages', err);
-    }
   };
 
   const handleSaveSettings = async (updates: {
@@ -229,15 +214,12 @@ export const Dashboard: React.FC = () => {
       {activeTab === 'practice' && (
         <PracticeTab
           targetLanguage={targetLanguage}
-          nativeLanguage={nativeLanguage}
           onStartSession={handleStartSession}
           dailyPrompt={currentPrompt}
           onShufflePrompt={handleShufflePrompt}
           requestedTopic={requestedTopic}
           onSelectTopic={setRequestedTopic}
           onClearTopic={() => setRequestedTopic('')}
-          placementCompleted={Boolean(profile?.placementCompletedAt)}
-          onOpenLanguagePicker={() => setShowLanguageModal(true)}
         />
       )}
 
@@ -269,21 +251,12 @@ export const Dashboard: React.FC = () => {
           onRestartOnboarding={() =>
             alert('Onboarding tutorial will launch on your next session!')
           }
+          onStartPlacement={() => handleStartSession('placement')}
         />
       )}
 
       {/* Ergonomic 4-Tab Bottom Navigation Bar */}
       <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {/* Language Picker Sheet Modal */}
-      <LanguagePickerModal
-        isOpen={showLanguageModal}
-        onClose={() => setShowLanguageModal(false)}
-        nativeLanguage={nativeLanguage}
-        targetLanguage={targetLanguage}
-        languages={AVAILABLE_LANGUAGES}
-        onSave={handleSaveLanguages}
-      />
     </div>
   );
 };
