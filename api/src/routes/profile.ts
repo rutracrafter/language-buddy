@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { getCollections } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
+import { createInitialFsrsCard } from '../services/fsrs.js';
 
 export const profileRouter = Router();
 
@@ -25,6 +26,12 @@ const updateProfileSchema = z.object({
       defaultSessionMinutes: z.number().min(5).max(30).optional(),
     })
     .optional(),
+  onboardingCompletedAt: z.string().or(z.date()).nullable().optional(),
+  ageRange: z.string().optional(),
+  priorStudy: z.string().optional(),
+  comfortLevel: z.string().optional(),
+  firstWordLearned: z.string().optional(),
+  firstWordGloss: z.string().optional(),
 });
 
 profileRouter.get('/dashboard', async (req: Request, res: Response) => {
@@ -109,6 +116,38 @@ profileRouter.put('/', async (req: Request, res: Response) => {
     if (updates.targetLanguage) setObj.targetLanguage = updates.targetLanguage;
     if (updates.level) setObj.level = updates.level;
     if (updates.interests) setObj.interests = updates.interests;
+    if (updates.onboardingCompletedAt !== undefined) {
+      setObj.onboardingCompletedAt = updates.onboardingCompletedAt
+        ? new Date(updates.onboardingCompletedAt)
+        : null;
+    }
+    if (updates.ageRange) setObj.ageRange = updates.ageRange;
+    if (updates.priorStudy) setObj.priorStudy = updates.priorStudy;
+    if (updates.comfortLevel) setObj.comfortLevel = updates.comfortLevel;
+
+    if (updates.firstWordLearned) {
+      setObj.firstWordLearned = updates.firstWordLearned;
+      const cleanWord = updates.firstWordLearned.trim().toLowerCase();
+      const existingItem = await collections.items.findOne({
+        userId: req.userId!,
+        text: { $regex: new RegExp(`^${cleanWord}$`, 'i') },
+      });
+      if (!existingItem) {
+        await collections.items.insertOne({
+          userId: req.userId!,
+          type: 'vocab',
+          text: updates.firstWordLearned,
+          gloss: updates.firstWordGloss || 'First word learned',
+          cefrLevel: updates.level?.overall || 'A1',
+          topicTags: ['onboarding_first_word'],
+          stage: 'recognition',
+          recognition: createInitialFsrsCard(),
+          production: null,
+          createdAt: new Date(),
+        });
+      }
+    }
+
     if (updates.preferences) {
       // Merge preferences
       for (const [key, value] of Object.entries(updates.preferences)) {

@@ -10,6 +10,7 @@ import { runAnalyst } from '../services/analyst.js';
 import { buildPlacementSystemInstruction, runPlacementAnalyst } from '../services/placement.js';
 import { buildFirstCallSystemInstruction } from '../services/firstCallPrompt.js';
 import { analyzeOnboardingCall } from '../services/onboardingAnalyst.js';
+import { createInitialFsrsCard } from '../services/fsrs.js';
 
 export const sessionsRouter = Router();
 
@@ -117,7 +118,7 @@ sessionsRouter.post('/onboarding-analyze', async (req: Request, res: Response) =
 sessionsRouter.use(requireAuth);
 
 const startSessionSchema = z.object({
-  type: z.enum(['placement', 'practice']).optional().default('practice'),
+  type: z.enum(['placement', 'practice', 'first_call']).optional().default('practice'),
   targetMinutes: z.number().min(1).max(30).optional().default(10),
   nativeLanguage: z.string().trim().min(1).optional(),
   targetLanguage: z.string().trim().min(1).optional(),
@@ -166,6 +167,16 @@ sessionsRouter.post('/start', async (req: Request, res: Response) => {
         type: 'placement',
         topic: sessionTopic,
         cefrLevel,
+        systemInstruction,
+      };
+    } else if (type === 'first_call') {
+      const ageRange = profile?.ageRange || '26 to 40';
+      systemInstruction = buildFirstCallSystemInstruction(userNative, userTarget, ageRange, speechRate);
+      sessionTopic = `Meet Buddy & First Chat (${userTarget})`;
+      planData = {
+        type: 'first_call',
+        topic: sessionTopic,
+        cefrLevel: 'A1',
         systemInstruction,
       };
     } else {
@@ -296,10 +307,67 @@ sessionsRouter.post('/:id/finish', async (req: Request, res: Response) => {
       }
     );
 
-    // Run appropriate AI Analyst (Placement Analyst or Practice Analyst)
+    // Run appropriate AI Analyst (Placement Analyst, Onboarding First Call, or Practice Analyst)
     let analysis: any = null;
     if (session.type === 'placement') {
       analysis = await runPlacementAnalyst(sessionId);
+    } else if (session.type === 'first_call') {
+      const profile = await collections.profiles.findOne({ userId: req.userId! });
+      const ageRange = profile?.ageRange || '26 to 40';
+      analysis = await analyzeOnboardingCall({
+        transcript: formattedTranscript.map((t) => ({ speaker: t.speaker, text: t.text })),
+        nativeLanguage: session.languages.native,
+        targetLanguage: session.languages.target,
+        ageRange,
+      });
+
+      // Update profile with first-call insights
+      if (analysis) {
+        const updateFields: Record<string, unknown> = {
+          updatedAt: new Date(),
+        };
+        if (analysis.priorStudy) updateFields.priorStudy = analysis.priorStudy;
+        if (analysis.comfortLevel) updateFields.comfortLevel = analysis.comfortLevel;
+        if (analysis.assessedCefrLevel) {
+          updateFields['level.overall'] = analysis.assessedCefrLevel;
+          updateFields['level.speaking'] = analysis.assessedCefrLevel;
+          updateFields['level.listening'] = analysis.assessedCefrLevel;
+        }
+        if (analysis.firstWordLearned) {
+          updateFields.firstWordLearned = analysis.firstWordLearned;
+          // Also insert starter item into items collection
+          const cleanWord = analysis.firstWordLearned.trim().toLowerCase();
+          const existingItem = await collections.items.findOne({
+            userId: req.userId!,
+            text: { $regex: new RegExp(`^${cleanWord}$`, 'i') },
+          });
+          if (!existingItem) {
+            await collections.items.insertOne({
+              userId: req.userId!,
+              type: 'vocab',
+              text: analysis.firstWordLearned,
+              gloss: analysis.firstWordGloss || 'First word learned',
+              cefrLevel: analysis.assessedCefrLevel || 'A1',
+              topicTags: ['onboarding_first_word'],
+              stage: 'recognition',
+              recognition: createInitialFsrsCard(),
+              production: null,
+              createdAt: new Date(),
+            });
+          }
+        }
+        await collections.profiles.updateOne({ userId: session.userId }, { $set: updateFields });
+      }
+
+      await collections.sessions.updateOne(
+        { _id: sessionId },
+        {
+          $set: {
+            summary: analysis,
+            analysisStatus: 'done',
+          },
+        }
+      );
     } else {
       analysis = await runAnalyst(sessionId);
     }

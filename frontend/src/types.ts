@@ -23,12 +23,14 @@ export interface LearnerProfile {
   };
   levelConfidence: number;
   placementCompletedAt: string | null;
+  onboardingCompletedAt?: string | null;
   interests: string[];
   preferences: LearnerPreferences;
   ageRange?: string;
   priorStudy?: string;
   comfortLevel?: string;
   firstWordLearned?: string;
+  firstWordGloss?: string;
   createdAt?: string;
   updatedAt?: string;
 }

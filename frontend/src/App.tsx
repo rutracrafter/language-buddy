@@ -7,8 +7,7 @@ import { OnboardingFlow } from './components/onboarding/OnboardingFlow.js';
 import { BUDDY_ASSETS } from './assets/buddyAssets.js';
 
 export const AppContent: React.FC = () => {
-  const { user, isLoading } = useAuth();
-  const [authMode, setAuthMode] = useState<'onboarding' | 'signin'>('onboarding');
+  const { user, profile, isLoading, refresh } = useAuth();
   const [isReplayingOnboarding, setIsReplayingOnboarding] = useState(false);
 
   if (isLoading) {
@@ -27,29 +26,25 @@ export const AppContent: React.FC = () => {
     );
   }
 
-  // If user is not authenticated: show Onboarding (new users) or Sign In (returning users)
+  // 1. User must sign in or register first
   if (!user) {
-    if (authMode === 'signin') {
-      return <AuthPage onOpenOnboarding={() => setAuthMode('onboarding')} />;
-    }
+    return <AuthPage />;
+  }
+
+  // 2. Once registered/logged in: if onboarding not completed or user tapped replay from Settings
+  const needsOnboarding = !profile?.onboardingCompletedAt || isReplayingOnboarding;
+  if (needsOnboarding) {
     return (
       <OnboardingFlow
-        onComplete={() => setAuthMode('onboarding')}
-        onOpenSignIn={() => setAuthMode('signin')}
+        onComplete={() => {
+          setIsReplayingOnboarding(false);
+          refresh();
+        }}
       />
     );
   }
 
-  // If authenticated user opts to replay onboarding from Settings
-  if (isReplayingOnboarding) {
-    return (
-      <OnboardingFlow
-        onComplete={() => setIsReplayingOnboarding(false)}
-        onOpenSignIn={() => setIsReplayingOnboarding(false)}
-      />
-    );
-  }
-
+  // 3. Authenticated user with onboarding completed -> Home (Navbar + Dashboard)
   return (
     <div className="min-h-screen bg-[#FAF7F0] bg-sketchbook text-[#2B2B2B] flex flex-col antialiased">
       <Navbar onRestartOnboarding={() => setIsReplayingOnboarding(true)} />

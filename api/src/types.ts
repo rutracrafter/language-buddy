@@ -27,6 +27,7 @@ export interface LearnerProfile {
   };
   levelConfidence: number; // 0 to 1
   placementCompletedAt: Date | null;
+  onboardingCompletedAt?: Date | null;
   interests: string[];
   preferences: LearnerPreferences;
   ageRange?: string;
@@ -108,7 +109,7 @@ export interface TranscriptLine {
 export interface Session {
   _id?: ObjectId;
   userId: ObjectId;
-  type: 'placement' | 'practice';
+  type: 'placement' | 'practice' | 'first_call';
   languages: {
     native: string;
     target: string;

@@ -4,7 +4,7 @@ import {
   HandDrawnArrowLeft,
   HandDrawnCheck,
   HandDrawnCross,
-  HandDrawnBook,
+  HandDrawnSparkle,
 } from '../HandDrawnIcons.js';
 import { BUDDY_ASSETS } from '../../assets/buddyAssets.js';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal.js';
@@ -64,14 +64,10 @@ function detectDeviceLanguage(): string {
 
 interface OnboardingFlowProps {
   onComplete: () => void;
-  onOpenSignIn: () => void;
 }
 
-export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
-  onComplete,
-  onOpenSignIn,
-}) => {
-  const { signup } = useAuth();
+export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
+  const { profile, updateProfile } = useAuth();
   const liveSession = useGeminiLive();
 
   // Restore state from localStorage if user refreshed mid-flow
@@ -93,25 +89,25 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   const [targetLanguage, setTargetLanguage] = useState<string>(() => {
     try {
       const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-      if (saved) return JSON.parse(saved).targetLanguage || 'Spanish';
+      if (saved) return JSON.parse(saved).targetLanguage || profile?.targetLanguage || 'Spanish';
     } catch {}
-    return 'Spanish';
+    return profile?.targetLanguage || 'Spanish';
   });
 
   const [nativeLanguage, setNativeLanguage] = useState<string>(() => {
     try {
       const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-      if (saved) return JSON.parse(saved).nativeLanguage || detectDeviceLanguage();
+      if (saved) return JSON.parse(saved).nativeLanguage || profile?.nativeLanguage || detectDeviceLanguage();
     } catch {}
-    return detectDeviceLanguage();
+    return profile?.nativeLanguage || detectDeviceLanguage();
   });
 
   const [ageRange, setAgeRange] = useState<string>(() => {
     try {
       const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-      if (saved) return JSON.parse(saved).ageRange || '';
+      if (saved) return JSON.parse(saved).ageRange || profile?.ageRange || '';
     } catch {}
-    return '';
+    return profile?.ageRange || '';
   });
 
   const [searchTarget, setSearchTarget] = useState('');
@@ -120,6 +116,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
   const [callError, setCallError] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Analysis result for Screen 6
   const [analysisResult, setAnalysisResult] = useState<any>(() => {
@@ -129,12 +126,6 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     } catch {}
     return null;
   });
-
-  // Screen 6 sign-up form
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
-  const [isSubmittingSignup, setIsSubmittingSignup] = useState(false);
-  const [signupError, setSignupError] = useState<string | null>(null);
 
   // Persist state updates to localStorage
   useEffect(() => {
@@ -172,30 +163,15 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   };
 
   // Start the First Call with specialized system instruction (Screen 5)
-  const startFirstCall = async () => {
+  const startFirstCall = () => {
     setCallError(false);
     try {
-      const res = await fetch('/api/sessions/onboarding-start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nativeLanguage,
-          targetLanguage,
-          ageRange,
-          speechRate: 0.9,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to start first call');
-      }
-
       liveSession.startSession({
-        type: 'practice',
+        type: 'first_call' as any,
         nativeLanguage,
         targetLanguage,
-        topic: 'First call with Buddy',
-        speechRate: 0.9,
+        topic: 'Meet Buddy & First Chat',
+        speechRate: profile?.preferences?.speechRate ?? 0.9,
       });
     } catch (err) {
       console.error('Failed to launch first call:', err);
@@ -203,45 +179,18 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     }
   };
 
-  // Handle first call finish -> run analysis -> go to Screen 6
+  // Handle first call finish -> go to Screen 6
   const handleFirstCallEnd = async () => {
-    liveSession.stopSession();
+    await liveSession.stopSession();
 
-    try {
-      const res = await fetch('/api/sessions/onboarding-analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transcript: liveSession.transcript.map((t) => ({
-            speaker: t.speaker,
-            text: t.text,
-          })),
-          nativeLanguage,
-          targetLanguage,
-          ageRange,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setAnalysisResult(data.analysis);
-      } else {
-        setAnalysisResult({
-          learnerName: 'Friend',
-          priorStudy: 'Starting fresh',
-          comfortLevel: 'Excited to practice',
-          assessedCefrLevel: 'A1',
-          cefrExplanation: 'You are beginning with foundational greetings and core spoken phrases.',
-          firstWordLearned: targetLanguage === 'Spanish' ? 'Hola' : 'Hello',
-          firstWordGloss: 'Hello',
-          summary: 'Great first conversation with Buddy!',
-        });
-      }
-    } catch {
+    // Use live session analysis result or generate fallback
+    if (liveSession.sessionAnalysis) {
+      setAnalysisResult(liveSession.sessionAnalysis);
+    } else {
       setAnalysisResult({
         learnerName: 'Friend',
         priorStudy: 'Starting fresh',
-        comfortLevel: 'Ready to speak',
+        comfortLevel: 'Excited to practice',
         assessedCefrLevel: 'A1',
         cefrExplanation: 'You are beginning with foundational greetings and core spoken phrases.',
         firstWordLearned: targetLanguage === 'Spanish' ? 'Hola' : 'Hello',
@@ -253,27 +202,35 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     setStep(6);
   };
 
-  // Handle final signup on Screen 6
-  const handleFinalSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSignupError(null);
-    setIsSubmittingSignup(true);
-
+  // Handle final save on Screen 6
+  const handleSaveToProfile = async () => {
+    setIsSavingProfile(true);
     try {
-      await signup(
-        signupEmail,
-        signupPassword,
+      const assessedLevel = analysisResult?.assessedCefrLevel || 'A1';
+      await updateProfile({
+        onboardingCompletedAt: new Date().toISOString(),
         nativeLanguage,
-        targetLanguage
-      );
+        targetLanguage,
+        ageRange: ageRange || undefined,
+        priorStudy: analysisResult?.priorStudy || undefined,
+        comfortLevel: analysisResult?.comfortLevel || undefined,
+        firstWordLearned: analysisResult?.firstWordLearned || undefined,
+        firstWordGloss: analysisResult?.firstWordGloss || undefined,
+        level: {
+          overall: assessedLevel,
+          speaking: assessedLevel,
+          listening: assessedLevel,
+        },
+      });
 
-      // Clean up localStorage onboarding state
+      // Clear local storage on completion
       localStorage.removeItem(ONBOARDING_STORAGE_KEY);
       onComplete();
     } catch (err) {
-      setSignupError(err instanceof Error ? err.message : 'Failed to save account');
+      console.error('Failed to save onboarding to profile:', err);
+      alert('Failed to save profile. Please try again.');
     } finally {
-      setIsSubmittingSignup(false);
+      setIsSavingProfile(false);
     }
   };
 
@@ -413,14 +370,6 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               >
                 <span>Get started</span>
                 <HandDrawnPhone size={16} washColor="#BAF7D0" strokeColor="#020617" />
-              </button>
-
-              <button
-                type="button"
-                onClick={onOpenSignIn}
-                className="w-full py-2 text-xs font-semibold text-stone-500 hover:text-stone-800 cursor-pointer"
-              >
-                Already have an account? Sign in
               </button>
             </div>
           </div>
@@ -642,7 +591,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         )}
 
         {/* ========================================================= */}
-        {/* SCREEN 6: RECAP AND SAVE                                  */}
+        {/* SCREEN 6: RECAP AND SAVE TO PROFILE                       */}
         {/* ========================================================= */}
         {step === 6 && (
           <div className="space-y-4 text-left">
@@ -694,48 +643,23 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               </span>
             </div>
 
-            {/* Save Progress Account Form */}
-            <div className="p-4 rounded-3xl bg-white shadow-xs border border-stone-200/80 space-y-3">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-[#2B2B2B]">
-                <HandDrawnBook size={14} washColor="#FED7AA" strokeColor="#2B2B2B" />
-                <span>Save your progress to keep learning</span>
+            {/* Personal Summary Note */}
+            {analysisResult?.summary && (
+              <div className="p-3.5 rounded-2xl bg-white shadow-xs border border-stone-200 text-xs text-stone-700 leading-relaxed font-medium">
+                {analysisResult.summary}
               </div>
+            )}
 
-              {signupError && (
-                <p className="text-xs text-rose-600 font-semibold">{signupError}</p>
-              )}
-
-              <form onSubmit={handleFinalSignup} className="space-y-2.5">
-                <div>
-                  <input
-                    type="email"
-                    required
-                    placeholder="Email address"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#FAF7F0] border border-stone-300 rounded-xl text-xs text-[#2B2B2B] focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
-                  />
-                </div>
-                <div>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    placeholder="Create a password"
-                    value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#FAF7F0] border border-stone-300 rounded-xl text-xs text-[#2B2B2B] focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isSubmittingSignup}
-                  className="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-[#020617] font-bold text-xs shadow-xs transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {isSubmittingSignup ? 'Saving...' : 'Save progress & enter Home'}
-                </button>
-              </form>
-            </div>
+            {/* Save to Profile & Enter Dashboard Button */}
+            <button
+              type="button"
+              disabled={isSavingProfile}
+              onClick={handleSaveToProfile}
+              className="w-full mt-2 py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-[#020617] font-bold text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <span>{isSavingProfile ? 'Saving...' : 'Save to My Profile & Start Learning'}</span>
+              <HandDrawnSparkle size={16} washColor="#BAF7D0" strokeColor="#020617" />
+            </button>
           </div>
         )}
       </div>
