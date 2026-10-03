@@ -229,6 +229,7 @@ export const Dashboard: React.FC = () => {
         error={liveSession.error}
         isMuted={liveSession.isMuted}
         speechRate={liveSession.speechRate}
+        echoGuard={liveSession.echoGuard}
         micVolume={liveSession.micVolume}
         agentSpeaking={liveSession.agentSpeaking}
         elapsedSeconds={liveSession.elapsedSeconds}
@@ -244,6 +245,8 @@ export const Dashboard: React.FC = () => {
             : requestedTopic || 'Everyday conversation & vocabulary practice'
         }
         onToggleMute={liveSession.toggleMute}
+        onToggleEchoGuard={liveSession.toggleEchoGuard}
+        onInterruptTutor={liveSession.interruptTutor}
         onUpdateSpeechRate={liveSession.updateSpeechRate}
         onStopSession={liveSession.stopSession}
         onReturnToDashboard={handleReturnToDashboard}

@@ -27,6 +27,7 @@ export interface StartSessionOptions {
   targetLanguage?: string;
   topic?: string;
   speechRate?: number;
+  echoGuard?: boolean;
 }
 
 export function useGeminiLive() {
@@ -36,6 +37,7 @@ export function useGeminiLive() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [speechRate, setSpeechRateState] = useState(1.0);
+  const [echoGuard, setEchoGuard] = useState(true);
   const [micVolume, setMicVolume] = useState(0);
   const [agentSpeaking, setAgentSpeaking] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -50,6 +52,7 @@ export function useGeminiLive() {
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const audioPlayerRef = useRef<LiveAudioPlayer | null>(null);
   const isMutedRef = useRef(false);
+  const echoGuardRef = useRef(true);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentSpeakerRef = useRef<'learner' | 'agent' | null>(null);
   const resumptionHandleRef = useRef<string | null>(null);
@@ -195,6 +198,10 @@ export function useGeminiLive() {
 
         // Step 3: Initialize audio playback queue
         const initialSpeechRate = options.speechRate || 1.0;
+        const initialEchoGuard = options.echoGuard ?? true;
+        echoGuardRef.current = initialEchoGuard;
+        setEchoGuard(initialEchoGuard);
+
         audioPlayerRef.current = new LiveAudioPlayer();
         audioPlayerRef.current.setPlaybackRate(initialSpeechRate);
         setSpeechRateState(initialSpeechRate);
@@ -424,6 +431,13 @@ export function useGeminiLive() {
         processor.onaudioprocess = (e: AudioProcessingEvent) => {
           if (isMutedRef.current || !sessionRef.current) return;
 
+          // Acoustic Echo Guard (Speaker feedback suppression)
+          // When active, drops mic streaming while speakers output audio and during 500ms room reverb tail
+          if (echoGuardRef.current && audioPlayerRef.current?.isAcousticallyActive()) {
+            setMicVolume(0);
+            return;
+          }
+
           const inputData = e.inputBuffer.getChannelData(0);
 
           // Calculate volume for UI visualizer (RMS)
@@ -507,6 +521,19 @@ export function useGeminiLive() {
     audioPlayerRef.current?.setPlaybackRate(rate);
   }, []);
 
+  const toggleEchoGuard = useCallback(() => {
+    setEchoGuard((prev) => {
+      const next = !prev;
+      echoGuardRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const interruptTutor = useCallback(() => {
+    audioPlayerRef.current?.interrupt();
+    setAgentSpeaking(false);
+  }, []);
+
   return {
     status,
     sessionType,
@@ -514,6 +541,7 @@ export function useGeminiLive() {
     sessionId,
     isMuted,
     speechRate,
+    echoGuard,
     micVolume,
     agentSpeaking,
     elapsedSeconds,
@@ -523,6 +551,8 @@ export function useGeminiLive() {
     startSession,
     stopSession,
     toggleMute,
+    toggleEchoGuard,
+    interruptTutor,
     updateSpeechRate,
     resetSession: () => {
       cleanupAudio();

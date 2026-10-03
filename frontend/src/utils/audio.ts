@@ -65,6 +65,7 @@ export function base64ToFloat32Audio(base64: string): Float32Array {
 export class LiveAudioPlayer {
   private ctx: AudioContext | null = null;
   private nextPlayTime = 0;
+  private echoCooldownUntil = 0;
   private activeSources: AudioBufferSourceNode[] = [];
   public playbackRate: number = 1.0;
 
@@ -112,6 +113,8 @@ export class LiveAudioPlayer {
     source.start(startTime);
     const effectiveDuration = buffer.duration / this.playbackRate;
     this.nextPlayTime = startTime + effectiveDuration;
+    // Guard window: keep active during physical speaker playback plus 500ms room reverb tail
+    this.echoCooldownUntil = this.nextPlayTime + 0.5;
 
     this.activeSources.push(source);
     source.onended = () => {
@@ -120,6 +123,16 @@ export class LiveAudioPlayer {
         this.activeSources.splice(idx, 1);
       }
     };
+  }
+
+  public isAcousticallyActive(): boolean {
+    if (!this.ctx) return false;
+    return this.ctx.currentTime < this.echoCooldownUntil;
+  }
+
+  public isPhysicallyPlaying(): boolean {
+    if (!this.ctx) return false;
+    return this.ctx.currentTime < this.nextPlayTime;
   }
 
   public interrupt(): void {
@@ -134,6 +147,7 @@ export class LiveAudioPlayer {
     this.activeSources = [];
     if (this.ctx) {
       this.nextPlayTime = this.ctx.currentTime;
+      this.echoCooldownUntil = this.ctx.currentTime;
     }
   }
 

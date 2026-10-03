@@ -15,6 +15,8 @@ import {
   TrendingUp,
   Target,
   Award,
+  ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react';
 import { LiveTranscriptItem, LiveSessionStatus } from '../hooks/useGeminiLive.js';
 
@@ -24,6 +26,7 @@ interface LiveSessionViewProps {
   error: string | null;
   isMuted: boolean;
   speechRate?: number;
+  echoGuard?: boolean;
   micVolume: number;
   agentSpeaking: boolean;
   elapsedSeconds: number;
@@ -35,6 +38,8 @@ interface LiveSessionViewProps {
   cefrLevel: string;
   topic?: string;
   onToggleMute: () => void;
+  onToggleEchoGuard?: () => void;
+  onInterruptTutor?: () => void;
   onUpdateSpeechRate?: (rate: number) => void;
   onStopSession: () => void;
   onReturnToDashboard: () => void;
@@ -46,6 +51,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
   error,
   isMuted,
   speechRate = 1.0,
+  echoGuard = true,
   micVolume,
   agentSpeaking,
   elapsedSeconds,
@@ -57,6 +63,8 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
   cefrLevel,
   topic,
   onToggleMute,
+  onToggleEchoGuard,
+  onInterruptTutor,
   onUpdateSpeechRate,
   onStopSession,
   onReturnToDashboard,
@@ -395,6 +403,16 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
             <p className="text-xs text-slate-400 mt-1 max-w-xs">
               {topic ? `Topic: ${topic}` : 'Speak naturally in ' + targetLanguage}
             </p>
+
+            {agentSpeaking && onInterruptTutor && (
+              <button
+                type="button"
+                onClick={onInterruptTutor}
+                className="mt-2.5 px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold transition-all cursor-pointer inline-flex items-center"
+              >
+                Interrupt & Speak Now
+              </button>
+            )}
           </div>
 
           {/* Quick Tip Pill */}
@@ -407,9 +425,30 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
                 Need help? Ask in <strong className="text-emerald-400">{nativeLanguage}</strong> anytime!
               </div>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60 text-[11px] text-slate-500 text-center">
-              🎧 Headphones recommended to avoid audio feedback
-            </div>
+
+            {onToggleEchoGuard && (
+              <button
+                type="button"
+                onClick={onToggleEchoGuard}
+                className={`w-full p-2.5 rounded-xl border text-[11px] text-center font-medium transition-all cursor-pointer flex items-center justify-center space-x-1.5 ${
+                  echoGuard
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-400'
+                }`}
+              >
+                {echoGuard ? (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Echo Guard Active (Speaker feedback blocked)</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Echo Guard Off (Headphone mode)</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
           {error && (
