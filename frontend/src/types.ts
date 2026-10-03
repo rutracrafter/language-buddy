@@ -8,7 +8,7 @@ export interface User {
 export interface LearnerPreferences {
   speechRate: number;
   nativeLangSupport: 'low' | 'med' | 'high';
-  defaultSessionMinutes: number;
+  defaultSessionMinutes?: number;
 }
 
 export interface LearnerProfile {

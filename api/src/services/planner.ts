@@ -25,7 +25,7 @@ function getGenAI(): GoogleGenAI {
 export async function generateSessionPlan(
   userId: ObjectId,
   options: {
-    targetMinutes: number;
+    targetMinutes?: number;
     nativeLanguage?: string;
     targetLanguage?: string;
     requestedTopic?: string;
@@ -43,14 +43,12 @@ export async function generateSessionPlan(
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // Enforce caps: 1 per 4 min, max 5 per session, max 12 per day
+  // Enforce caps: max 12 new items per day
   const itemsIntroducedToday = await collections.items.countDocuments({
     userId,
     createdAt: { $gte: startOfDay },
   });
-  const sessionNewItemBudget = Math.max(1, Math.min(5, Math.floor(options.targetMinutes / 4)));
-  const remainingDailyBudget = Math.max(0, 12 - itemsIntroducedToday);
-  const maxNewItemsAllowed = Math.min(sessionNewItemBudget, remainingDailyBudget);
+  const maxNewItemsAllowed = Math.min(3, Math.max(0, 12 - itemsIntroducedToday));
 
   // Spaced repetition: select items currently due for review
   const dueItems = await collections.items
@@ -93,7 +91,7 @@ LEARNER PROFILE:
 - Native Language: ${nativeLanguage}
 - Target Language: ${targetLanguage}
 - CEFR Level: ${cefrLevel}
-- Session Length: ${options.targetMinutes} minutes
+- Session Format: Open-ended, natural conversation for as long as the learner wishes
 - Requested Topic: ${options.requestedTopic || 'None specified'}
 
 FSRS SPACED REPETITION QUEUE:
@@ -197,10 +195,9 @@ AGENT TOOLS TO CALL:
 - Call log_item_event(text, skill, outcome, evidence) when the learner demonstrates understanding ("recognition") or successfully uses ("production") a vocabulary item or grammar pattern.
 - Call log_error(text, note) when the learner makes a noteworthy grammar, pronunciation, or word choice mistake.
 
-GOAL WRAP-UP & FREE CONVERSATION:
-- When the planned goal is met or when the practice duration (${options.targetMinutes} min) approaches, summarize what was accomplished and offer:
-  "We met our practice goal today! Would you like to wrap up here, or keep chatting freely in ${targetLanguage}?"
-- If the learner chooses to continue, enter free conversation mode (introduce no planned new words, but keep conversation going naturally).
+CONVERSATION FLOW:
+- This is a natural, open-ended conversation for however long the learner wants to chat.
+- Keep the dialogue flowing comfortably and responsively. Do not rush to wrap up or urge the user to stop; let the learner conclude when they are ready.
 
 START OF SESSION:
 - Open by greeting the learner warmly in ${targetLanguage} and asking an engaging initial question related to the topic!`;

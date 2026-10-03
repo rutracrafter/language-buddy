@@ -9,8 +9,6 @@ import { BUDDY_ASSETS } from '../../assets/buddyAssets.js';
 interface PracticeTabProps {
   targetLanguage: string;
   nativeLanguage: string;
-  sessionMinutes: number;
-  onMinutesChange: (mins: number) => void;
   onStartSession: (type: 'placement' | 'practice') => void;
   dailyPrompt: { category: string; title: string; teaser: string };
   onShufflePrompt: () => void;
@@ -24,8 +22,6 @@ interface PracticeTabProps {
 export const PracticeTab: React.FC<PracticeTabProps> = ({
   targetLanguage,
   nativeLanguage,
-  sessionMinutes,
-  onMinutesChange,
   onStartSession,
   dailyPrompt,
   onShufflePrompt,
@@ -76,36 +72,16 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
             Ring Buddy
           </h2>
           <p className="text-xs text-[#2B2B2B]/85 font-medium max-w-[240px] mt-0.5 leading-snug">
-            Speak {targetLanguage} naturally with your AI companion
+            Speak {targetLanguage} naturally in an open-ended conversation
           </p>
-
-          {/* Session Length Pills */}
-          <div className="mt-3 flex items-center gap-1.5 bg-white/30 backdrop-blur-xs px-2.5 py-1 rounded-full">
-            <span className="text-[10px] font-bold text-[#2B2B2B]/75 uppercase tracking-wider">
-              Length:
-            </span>
-            {[5, 10, 15, 20].map((mins) => (
-              <button
-                key={mins}
-                onClick={() => onMinutesChange(mins)}
-                className={`px-2 py-0.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                  sessionMinutes === mins
-                    ? 'bg-[#2B2B2B] text-white shadow-2xs'
-                    : 'text-[#2B2B2B]/80 hover:bg-white/40'
-                }`}
-              >
-                {mins}m
-              </button>
-            ))}
-          </div>
 
           {/* Attached Topic Badge */}
           {requestedTopic ? (
-            <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 bg-white/90 rounded-full text-[11px] font-medium text-[#2B2B2B] shadow-2xs">
+            <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-white/90 rounded-full text-[11px] font-medium text-[#2B2B2B] shadow-2xs">
               <span>🎯 Topic: {requestedTopic}</span>
               <button
                 onClick={onClearTopic}
-                className="text-stone-500 hover:text-stone-800 ml-1 font-bold"
+                className="text-stone-500 hover:text-stone-800 ml-1 font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -123,14 +99,14 @@ export const PracticeTab: React.FC<PracticeTabProps> = ({
               <span>Placement Check</span>
             </div>
             <span className="text-[10px] font-semibold text-orange-800 bg-white/60 px-2 py-0.5 rounded-full">
-              8 mins
+              Oral Interview
             </span>
           </div>
           <h4 className="font-display font-bold text-sm text-[#2B2B2B]">
             Calibrate Your {targetLanguage} Level
           </h4>
           <p className="text-xs text-[#2B2B2B]/80 mt-1 leading-relaxed">
-            Take a short ACTFL OPI conversation so Buddy can set your floor and ceiling.
+            Take a short ACTFL OPI conversation so Buddy can determine your speaking floor and ceiling.
           </p>
           <button
             onClick={() => onStartSession('placement')}

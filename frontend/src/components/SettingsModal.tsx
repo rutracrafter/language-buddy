@@ -27,9 +27,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [nativeLangSupport, setNativeLangSupport] = useState<'low' | 'med' | 'high'>(
     profile?.preferences?.nativeLangSupport ?? 'med'
   );
-  const [defaultSessionMinutes, setDefaultSessionMinutes] = useState<number>(
-    profile?.preferences?.defaultSessionMinutes ?? 10
-  );
   const [interests, setInterests] = useState<string[]>(profile?.interests ?? []);
   const [customInterest, setCustomInterest] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -60,7 +57,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         preferences: {
           speechRate,
           nativeLangSupport,
-          defaultSessionMinutes,
         },
       });
       setSaveSuccess(true);
@@ -155,29 +151,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               {nativeLangSupport === 'med' && 'Balanced immersion: tutor offers quick translations for unfamiliar idioms.'}
               {nativeLangSupport === 'high' && 'Frequent scaffolding: tutor explains complex grammar in English when you hesitate.'}
             </p>
-          </div>
-
-          {/* Default Session Length */}
-          <div className="p-3.5 rounded-2xl bg-white/90 border border-stone-200/80 shadow-2xs">
-            <span className="block text-xs font-bold text-[#2B2B2B] mb-2">
-              Default Session Length
-            </span>
-            <div className="flex space-x-2">
-              {[5, 10, 15, 20].map((mins) => (
-                <button
-                  key={mins}
-                  type="button"
-                  onClick={() => setDefaultSessionMinutes(mins)}
-                  className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    defaultSessionMinutes === mins
-                      ? 'bg-[#2B2B2B] text-white shadow-2xs'
-                      : 'bg-[#FAF7F0] border border-stone-300 text-stone-700 hover:bg-stone-100'
-                  }`}
-                >
-                  {mins}m
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Conversation Interests */}

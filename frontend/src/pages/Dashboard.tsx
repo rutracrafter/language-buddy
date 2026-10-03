@@ -51,9 +51,6 @@ export const Dashboard: React.FC = () => {
   const liveSession = useGeminiLive();
 
   const [activeTab, setActiveTab] = useState<NavTabType>('practice');
-  const [sessionMinutes, setSessionMinutes] = useState<number>(
-    profile?.preferences?.defaultSessionMinutes || 10
-  );
   const [nativeLanguage, setNativeLanguage] = useState(profile?.nativeLanguage || 'English');
   const [targetLanguage, setTargetLanguage] = useState(profile?.targetLanguage || 'Spanish');
   const [recentSessions, setRecentSessions] = useState<any[]>([]);
@@ -128,29 +125,11 @@ export const Dashboard: React.FC = () => {
     if (profile) {
       setNativeLanguage(profile.nativeLanguage || 'English');
       setTargetLanguage(profile.targetLanguage || 'Spanish');
-      if (profile.preferences?.defaultSessionMinutes) {
-        setSessionMinutes(profile.preferences.defaultSessionMinutes);
-      }
     }
   }, [profile]);
 
   const handleShufflePrompt = () => {
     setPromptIndex((prev) => (prev + 1) % DAILY_PROMPTS.length);
-  };
-
-  const handleMinutesChange = async (mins: number) => {
-    setSessionMinutes(mins);
-    try {
-      await updateProfile({
-        preferences: {
-          speechRate: profile?.preferences?.speechRate ?? 1.0,
-          nativeLangSupport: profile?.preferences?.nativeLangSupport ?? 'med',
-          defaultSessionMinutes: mins,
-        },
-      });
-    } catch (err) {
-      console.error('Failed to update session length preference', err);
-    }
   };
 
   const handleSaveLanguages = async (newNative: string, newTarget: string) => {
@@ -183,7 +162,7 @@ export const Dashboard: React.FC = () => {
       preferences: {
         speechRate: updates.speechRate ?? profile?.preferences?.speechRate ?? 1.0,
         nativeLangSupport: updates.nativeLangSupport ?? profile?.preferences?.nativeLangSupport ?? 'med',
-        defaultSessionMinutes: sessionMinutes,
+        defaultSessionMinutes: profile?.preferences?.defaultSessionMinutes ?? 10,
       },
     });
   };
@@ -191,7 +170,6 @@ export const Dashboard: React.FC = () => {
   const handleStartSession = (type: 'placement' | 'practice') => {
     liveSession.startSession({
       type,
-      targetMinutes: type === 'placement' ? 8 : sessionMinutes,
       nativeLanguage,
       targetLanguage,
       topic:
@@ -252,8 +230,6 @@ export const Dashboard: React.FC = () => {
         <PracticeTab
           targetLanguage={targetLanguage}
           nativeLanguage={nativeLanguage}
-          sessionMinutes={sessionMinutes}
-          onMinutesChange={handleMinutesChange}
           onStartSession={handleStartSession}
           dailyPrompt={currentPrompt}
           onShufflePrompt={handleShufflePrompt}

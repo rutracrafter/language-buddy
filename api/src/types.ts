@@ -12,7 +12,7 @@ export interface User {
 export interface LearnerPreferences {
   speechRate: number; // e.g. 0.8 to 1.2
   nativeLangSupport: 'low' | 'med' | 'high';
-  defaultSessionMinutes: number; // 5, 10, 15, 20
+  defaultSessionMinutes?: number; // optional, open-ended
 }
 
 export interface LearnerProfile {

@@ -21,7 +21,7 @@ interface LiveSessionViewProps {
   micVolume: number;
   agentSpeaking: boolean;
   elapsedSeconds: number;
-  targetMinutes: number;
+  targetMinutes?: number;
   transcript: LiveTranscriptItem[];
   sessionAnalysis?: any;
   nativeLanguage: string;
@@ -46,7 +46,6 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
   micVolume,
   agentSpeaking,
   elapsedSeconds,
-  targetMinutes,
   transcript,
   sessionAnalysis,
   nativeLanguage,
@@ -271,7 +270,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
         <div className="flex items-center gap-1.5 mt-0.5">
           <span className="text-[10px] text-[#2B2B2B]/60 font-medium">duration</span>
           <span className="text-xs font-mono font-bold text-[#2B2B2B] tabular-nums">
-            {formatDuration(elapsedSeconds)} / {targetMinutes}m
+            {formatDuration(elapsedSeconds)}
           </span>
           <span className="text-[10px] font-bold text-stone-600 bg-white/70 px-1.5 py-0.5 rounded-md border border-stone-200">
             {cefrLevel}
