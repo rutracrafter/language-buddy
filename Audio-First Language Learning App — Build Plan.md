@@ -61,13 +61,13 @@ Each phase starts only when the previous gate passes. No dates are set yet; Phas
 
 ### Phase 3 — Spaced repetition
 
-- [ ] Add an FSRS library; create recognition cards when items are introduced
-- [ ] Map analyst outcomes to FSRS grades using the overview's grading table
-- [ ] Enforce one graded review per item, per skill, per session
-- [ ] Graduation rule: two Good-or-better recognition reviews in separate sessions create a production card
-- [ ] Planner selects due items and new items within session and daily caps
-- [ ] Session-length picker (5 / 10 / 15 / 20 min); agent offers to wrap up or continue at the goal
-- [ ] Free-conversation mode: no planned new items, unplanned words logged as candidates
+- [x] Add an FSRS library; create recognition cards when items are introduced
+- [x] Map analyst outcomes to FSRS grades using the overview's grading table
+- [x] Enforce one graded review per item, per skill, per session
+- [x] Graduation rule: two Good-or-better recognition reviews in separate sessions create a production card
+- [x] Planner selects due items and new items within session and daily caps
+- [x] Session-length picker (5 / 10 / 15 / 20 min); agent offers to wrap up or continue at the goal
+- [x] Free-conversation mode: no planned new items, unplanned words logged as candidates
 
 **Gate:** over a week of daily use, due items reappear on schedule and new items stay under the daily cap.
 

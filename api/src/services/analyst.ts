@@ -10,6 +10,7 @@ import {
   Session,
   FsrsCard,
 } from '../types.js';
+import { createInitialFsrsCard, scheduleReview } from './fsrs.js';
 
 export interface AnalystResult {
   itemsReviewed: Array<{
@@ -52,21 +53,6 @@ function getGenAI(): GoogleGenAI {
     throw new Error('GEMINI_API_KEY is not configured');
   }
   return new GoogleGenAI({ apiKey });
-}
-
-function createDefaultFsrsCard(): FsrsCard {
-  const now = new Date();
-  return {
-    due: now,
-    stability: 2.0,
-    difficulty: 5.0,
-    elapsed_days: 0,
-    scheduled_days: 1,
-    reps: 1,
-    lapses: 0,
-    state: 1, // Learning
-    last_review: now,
-  };
 }
 
 export async function runAnalyst(sessionId: ObjectId): Promise<AnalystResult | null> {
@@ -211,7 +197,7 @@ Analyze the session and return structured JSON matching the schema.`;
     const reviewedItemIds: ObjectId[] = [];
     const introducedItemIds: ObjectId[] = [];
 
-    // 1. Process items reviewed
+    // 1. Process items reviewed (enforce at most 1 graded review per item, per skill, per session)
     for (const reviewed of result.itemsReviewed || []) {
       const cleanText = reviewed.text.trim().toLowerCase();
       let item = await collections.items.findOne({
@@ -220,7 +206,8 @@ Analyze the session and return structured JSON matching the schema.`;
       });
 
       if (!item) {
-        // Create if not yet in database
+        // Create initial item with recognition FSRS card
+        const initialRecognitionCard = scheduleReview(createInitialFsrsCard(), reviewed.outcome, now);
         const insertRes = await collections.items.insertOne({
           userId: session.userId,
           type: reviewed.type,
@@ -229,8 +216,11 @@ Analyze the session and return structured JSON matching the schema.`;
           cefrLevel: reviewed.cefrLevel,
           topicTags: [result.topicCoverage?.name || 'conversation'],
           stage: reviewed.skill === 'production' ? 'production' : 'recognition',
-          recognition: createDefaultFsrsCard(),
-          production: reviewed.skill === 'production' ? createDefaultFsrsCard() : null,
+          recognition: initialRecognitionCard,
+          production:
+            reviewed.skill === 'production'
+              ? scheduleReview(createInitialFsrsCard(), reviewed.outcome, now)
+              : null,
           createdAt: now,
         });
         reviewedItemIds.push(insertRes.insertedId);
@@ -248,36 +238,61 @@ Analyze the session and return structured JSON matching the schema.`;
       } else {
         reviewedItemIds.push(item._id!);
 
-        await collections.reviews.insertOne({
+        // Enforce rule: max 1 review per item per skill per session
+        const existingSessionReview = await collections.reviews.findOne({
           userId: session.userId,
           itemId: item._id!,
           sessionId: session._id!,
           skill: reviewed.skill,
-          outcome: reviewed.outcome,
-          evidence: reviewed.evidence,
-          source: 'analyst',
-          at: now,
         });
 
-        // Check graduation: if in recognition and has >= 2 Good or Easy reviews, graduate to production
-        if (item.stage === 'recognition') {
-          const goodRecognitionReviewsCount = await collections.reviews.countDocuments({
+        if (!existingSessionReview) {
+          await collections.reviews.insertOne({
             userId: session.userId,
             itemId: item._id!,
-            skill: 'recognition',
-            outcome: { $in: ['good', 'easy'] },
+            sessionId: session._id!,
+            skill: reviewed.skill,
+            outcome: reviewed.outcome,
+            evidence: reviewed.evidence,
+            source: 'analyst',
+            at: now,
           });
 
-          if (goodRecognitionReviewsCount >= 2) {
+          // Update FSRS card
+          if (reviewed.skill === 'production') {
+            const updatedCard = scheduleReview(item.production, reviewed.outcome, now);
             await collections.items.updateOne(
               { _id: item._id },
-              {
-                $set: {
-                  stage: 'production',
-                  production: createDefaultFsrsCard(),
-                },
-              }
+              { $set: { production: updatedCard } }
             );
+          } else {
+            const updatedCard = scheduleReview(item.recognition, reviewed.outcome, now);
+            await collections.items.updateOne(
+              { _id: item._id },
+              { $set: { recognition: updatedCard } }
+            );
+          }
+
+          // Graduation rule: 2 Good-or-better recognition reviews in separate sessions graduate to production
+          if (item.stage === 'recognition') {
+            const distinctSessionsWithGoodRecognition = await collections.reviews.distinct('sessionId', {
+              userId: session.userId,
+              itemId: item._id!,
+              skill: 'recognition',
+              outcome: { $in: ['good', 'easy'] },
+            });
+
+            if (distinctSessionsWithGoodRecognition.length >= 2) {
+              await collections.items.updateOne(
+                { _id: item._id },
+                {
+                  $set: {
+                    stage: 'production',
+                    production: createInitialFsrsCard(),
+                  },
+                }
+              );
+            }
           }
         }
       }
@@ -301,7 +316,7 @@ Analyze the session and return structured JSON matching the schema.`;
           topicTags: [result.topicCoverage?.name || 'conversation'],
           firstSeenExample: intro.firstSeenExample,
           stage: 'recognition',
-          recognition: createDefaultFsrsCard(),
+          recognition: createInitialFsrsCard(),
           production: null,
           createdAt: now,
         });

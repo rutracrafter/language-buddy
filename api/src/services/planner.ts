@@ -37,6 +37,31 @@ export async function generateSessionPlan(
   const targetLanguage = options.targetLanguage || profile?.targetLanguage || 'Spanish';
   const cefrLevel = profile?.level?.overall || 'A1';
 
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Enforce caps: 1 per 4 min, max 5 per session, max 12 per day
+  const itemsIntroducedToday = await collections.items.countDocuments({
+    userId,
+    createdAt: { $gte: startOfDay },
+  });
+  const sessionNewItemBudget = Math.max(1, Math.min(5, Math.floor(options.targetMinutes / 4)));
+  const remainingDailyBudget = Math.max(0, 12 - itemsIntroducedToday);
+  const maxNewItemsAllowed = Math.min(sessionNewItemBudget, remainingDailyBudget);
+
+  // Spaced repetition: select items currently due for review
+  const dueItems = await collections.items
+    .find({
+      userId,
+      $or: [
+        { stage: 'production', 'production.due': { $lte: now } },
+        { stage: 'recognition', 'recognition.due': { $lte: now } },
+      ],
+    })
+    .sort({ 'production.due': 1, 'recognition.due': 1 })
+    .limit(6)
+    .toArray();
+
   // Gather learner history
   const openNotes = await collections.notes
     .find({ userId, status: 'open' })
@@ -68,20 +93,25 @@ LEARNER PROFILE:
 - Session Length: ${options.targetMinutes} minutes
 - Requested Topic: ${options.requestedTopic || 'None specified'}
 
+FSRS SPACED REPETITION QUEUE:
+- Items Due for Review Today (${dueItems.length}):
+${dueItems.length ? dueItems.map((i) => `- "${i.text}" (${i.gloss}, stage: ${i.stage})`).join('\n') : '- No SRS reviews currently due'}
+- Max New Items Budget Allowed: ${maxNewItemsAllowed} (Daily items so far: ${itemsIntroducedToday}/12)
+
 RECENT TOPICS COVERED:
-${coveredTopics.length ? coveredTopics.map((t) => `- ${t.name} (depth: ${t.depth}/3)`).join('\n') : '- No topics covered yet (first session)'}
+${coveredTopics.length ? coveredTopics.map((t) => `- ${t.name} (depth: ${t.depth}/3)`).join('\n') : '- No topics covered yet'}
 
 OPEN WEAK SPOTS / BUILD-ON NOTES:
 ${openNotes.length ? openNotes.map((n) => `- [${n.kind}] ${n.text}`).join('\n') : '- None logged yet'}
 
-KNOWN / RECENT VOCABULARY ITEMS:
-${recentItems.length ? recentItems.map((i) => `- "${i.text}" (${i.gloss}, stage: ${i.stage})`).join('\n') : '- None yet'}
+KNOWN RECENT VOCABULARY ITEMS:
+${recentItems.length ? recentItems.map((i) => `- "${i.text}" (${i.gloss})`).join('\n') : '- None yet'}
 
 PLANNING REQUIREMENTS:
 1. Choose an appropriate topic fitting CEFR ${cefrLevel} (or honor the requested topic if provided).
 2. Set a clear, practical spoken goal (e.g., ordering food, describing weekend routine, sharing opinions).
-3. If there are known items or open weak spots, specify which ones the agent should weave naturally into the conversation.
-4. If appropriate, select 1-3 new candidate words or phrases to introduce.
+3. Weave in the due review items and gently address open weak spots if relevant.
+4. Select up to ${maxNewItemsAllowed} new words or phrases to introduce (0 if budget is 0).
 5. Create a concise, natural opening greeting and question for the tutor.`;
 
   try {
@@ -132,8 +162,8 @@ PLANNING REQUIREMENTS:
 
     const topic = parsed.topic || options.requestedTopic || 'Everyday life and introductions';
     const goal = parsed.goal || 'Practice conversational greetings and basic exchanges';
-    const dueItems = parsed.dueItemsToWeave || [];
-    const newItems = parsed.newItemsToIntroduce || [];
+    const weavedDueItems = parsed.dueItemsToWeave || [];
+    const newItems = (parsed.newItemsToIntroduce || []).slice(0, maxNewItemsAllowed);
     const weakSpots = parsed.errorPatternsToAddress || [];
 
     const systemInstruction = `You are Language Buddy, a friendly, encouraging personal voice tutor helping the learner practice speaking.
@@ -157,13 +187,18 @@ LEVEL & PACING (CEFR ${cefrLevel}):
 SESSION PLAN & GOAL:
 - Topic: ${topic}
 - Goal: ${goal}
-${dueItems.length ? `- Items to weave in: ${dueItems.join(', ')}` : ''}
+${weavedDueItems.length ? `- Due items to weave into conversation: ${weavedDueItems.join(', ')}` : ''}
 ${newItems.length ? `- New items to introduce: ${newItems.map((i: any) => `"${i.text}" (${i.gloss})`).join(', ')}` : ''}
 ${weakSpots.length ? `- Weak spots to gently reinforce if errors occur: ${weakSpots.join(', ')}` : ''}
 
 AGENT TOOLS TO CALL:
 - Call log_item_event(text, skill, outcome, evidence) when the learner demonstrates understanding ("recognition") or successfully uses ("production") a vocabulary item or grammar pattern.
 - Call log_error(text, note) when the learner makes a noteworthy grammar, pronunciation, or word choice mistake.
+
+GOAL WRAP-UP & FREE CONVERSATION:
+- When the planned goal is met or when the practice duration (${options.targetMinutes} min) approaches, summarize what was accomplished and offer:
+  "We met our practice goal today! Would you like to wrap up here, or keep chatting freely in ${targetLanguage}?"
+- If the learner chooses to continue, enter free conversation mode (introduce no planned new words, but keep conversation going naturally).
 
 START OF SESSION:
 - Open by greeting the learner warmly in ${targetLanguage} and asking an engaging initial question related to the topic!`;
@@ -172,14 +207,13 @@ START OF SESSION:
       topic,
       goal,
       cefrLevel,
-      dueItemsToWeave: dueItems,
+      dueItemsToWeave: weavedDueItems,
       newItemsToIntroduce: newItems,
       errorPatternsToAddress: weakSpots,
       systemInstruction,
     };
   } catch (error) {
     console.error('Planner error, falling back to default plan:', error);
-    // Graceful fallback plan
     const topic = options.requestedTopic || 'Everyday life and introductions';
     const systemInstruction = `You are Language Buddy, a friendly voice tutor.
 Speak in ${targetLanguage} at CEFR ${cefrLevel}. The learner's native language is ${nativeLanguage}.
