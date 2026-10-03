@@ -8,9 +8,112 @@ import { Session, TranscriptLine } from '../types.js';
 import { generateSessionPlan } from '../services/planner.js';
 import { runAnalyst } from '../services/analyst.js';
 import { buildPlacementSystemInstruction, runPlacementAnalyst } from '../services/placement.js';
+import { buildFirstCallSystemInstruction } from '../services/firstCallPrompt.js';
+import { analyzeOnboardingCall } from '../services/onboardingAnalyst.js';
 
 export const sessionsRouter = Router();
 
+function getGenAIClient(): GoogleGenAI {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not configured on the backend');
+  }
+  return new GoogleGenAI({ apiKey });
+}
+
+const onboardingStartSchema = z.object({
+  nativeLanguage: z.string().trim().min(1).default('English'),
+  targetLanguage: z.string().trim().min(1).default('Spanish'),
+  ageRange: z.string().trim().default('26 to 40'),
+  speechRate: z.number().min(0.5).max(1.5).optional().default(0.9),
+});
+
+const onboardingAnalyzeSchema = z.object({
+  transcript: z.array(
+    z.object({
+      speaker: z.enum(['learner', 'agent']),
+      text: z.string(),
+    })
+  ),
+  nativeLanguage: z.string().trim().default('English'),
+  targetLanguage: z.string().trim().default('Spanish'),
+  ageRange: z.string().trim().default('26 to 40'),
+});
+
+// PUBLIC ENDPOINTS (for prospective learners during onboarding before account signup)
+
+// POST /api/sessions/onboarding-start
+sessionsRouter.post('/onboarding-start', async (req: Request, res: Response) => {
+  try {
+    const parseResult = onboardingStartSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: parseResult.error.errors[0].message });
+      return;
+    }
+
+    const { nativeLanguage, targetLanguage, ageRange, speechRate } = parseResult.data;
+
+    const systemInstruction = buildFirstCallSystemInstruction(
+      nativeLanguage,
+      targetLanguage,
+      ageRange,
+      speechRate
+    );
+
+    const client = getGenAIClient();
+    const expireTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    const newSessionExpireTime = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+    const authToken = await client.authTokens.create({
+      config: {
+        uses: 1,
+        expireTime,
+        newSessionExpireTime,
+        httpOptions: { apiVersion: 'v1alpha' },
+      },
+    });
+
+    if (!authToken || !authToken.name) {
+      throw new Error('Failed to obtain ephemeral token from Gemini API');
+    }
+
+    res.status(201).json({
+      token: authToken.name,
+      model: 'gemini-3.8-live',
+      systemInstruction,
+      nativeLanguage,
+      targetLanguage,
+      ageRange,
+      speechRate,
+    });
+  } catch (error) {
+    console.error('Onboarding start error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to start onboarding voice call',
+    });
+  }
+});
+
+// POST /api/sessions/onboarding-analyze
+sessionsRouter.post('/onboarding-analyze', async (req: Request, res: Response) => {
+  try {
+    const parseResult = onboardingAnalyzeSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: parseResult.error.errors[0].message });
+      return;
+    }
+
+    const analysis = await analyzeOnboardingCall(parseResult.data);
+    res.json({ analysis });
+  } catch (error) {
+    console.error('Onboarding analyze error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to analyze onboarding conversation',
+    });
+  }
+});
+
+// AUTH-PROTECTED ENDPOINTS (requires active user login)
 sessionsRouter.use(requireAuth);
 
 const startSessionSchema = z.object({
@@ -32,14 +135,6 @@ const finishSessionSchema = z.object({
   ),
   toolEvents: z.array(z.record(z.unknown())).optional().default([]),
 });
-
-function getGenAIClient(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not configured on the backend');
-  }
-  return new GoogleGenAI({ apiKey });
-}
 
 // POST /api/sessions/start — Run Planner, issue ephemeral Live token & create session
 sessionsRouter.post('/start', async (req: Request, res: Response) => {

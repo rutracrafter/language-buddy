@@ -18,7 +18,11 @@ const COMMON_LANGUAGES = [
   'Arabic',
 ];
 
-export const AuthPage: React.FC = () => {
+interface AuthPageProps {
+  onOpenOnboarding?: () => void;
+}
+
+export const AuthPage: React.FC<AuthPageProps> = ({ onOpenOnboarding }) => {
   const { login, signup } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -206,6 +210,18 @@ export const AuthPage: React.FC = () => {
               )}
             </button>
           </form>
+
+          {onOpenOnboarding && (
+            <div className="mt-4 pt-3 border-t border-stone-200 text-center">
+              <button
+                type="button"
+                onClick={onOpenOnboarding}
+                className="text-xs text-stone-500 hover:text-stone-800 font-semibold cursor-pointer underline"
+              >
+                New here? Start with the intro walkthrough
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

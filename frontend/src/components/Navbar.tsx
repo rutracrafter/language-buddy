@@ -5,7 +5,11 @@ import { HandDrawnFlame, HandDrawnSettings } from './HandDrawnIcons.js';
 import { SettingsModal } from './SettingsModal.js';
 import { BUDDY_ASSETS } from '../assets/buddyAssets.js';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  onRestartOnboarding?: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onRestartOnboarding }) => {
   const { user, profile, logout } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
 
@@ -71,7 +75,14 @@ export const Navbar: React.FC = () => {
         </div>
       </header>
 
-      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        onRestartOnboarding={() => {
+          setShowSettings(false);
+          onRestartOnboarding?.();
+        }}
+      />
     </>
   );
 };

@@ -45,7 +45,11 @@ const DAILY_PROMPTS = [
   },
 ];
 
-export const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onRestartOnboarding?: () => void;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ onRestartOnboarding }) => {
   const { user, profile, updateProfile, logout } = useAuth();
   const liveSession = useGeminiLive();
 
@@ -230,6 +234,7 @@ export const Dashboard: React.FC = () => {
       {activeTab === 'me' && (
         <MeTab
           userEmail={user?.email}
+          learnerProfile={profile}
           targetLanguage={targetLanguage}
           currentLevel={currentLevel}
           levelConfidence={profile?.levelConfidence || 0.25}
@@ -248,8 +253,8 @@ export const Dashboard: React.FC = () => {
           interests={profile?.interests || []}
           onSave={handleSaveSettings}
           onLogout={logout}
-          onRestartOnboarding={() =>
-            alert('Onboarding tutorial will launch on your next session!')
+          onRestartOnboarding={
+            onRestartOnboarding || (() => alert('Onboarding walkthrough reset!'))
           }
           onStartPlacement={() => handleStartSession('placement')}
         />

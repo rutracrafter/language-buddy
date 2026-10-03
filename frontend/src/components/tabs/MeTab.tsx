@@ -5,10 +5,11 @@ import {
   HandDrawnFlame,
   HandDrawnUser,
 } from '../HandDrawnIcons.js';
-import { CEFRLevel } from '../../types.js';
+import { CEFRLevel, LearnerProfile } from '../../types.js';
 
 interface MeTabProps {
   userEmail?: string;
+  learnerProfile?: LearnerProfile | null;
   targetLanguage: string;
   currentLevel: CEFRLevel;
   levelConfidence: number;
@@ -27,6 +28,7 @@ interface MeTabProps {
 
 export const MeTab: React.FC<MeTabProps> = ({
   userEmail,
+  learnerProfile,
   targetLanguage,
   currentLevel,
   levelConfidence,
@@ -36,17 +38,52 @@ export const MeTab: React.FC<MeTabProps> = ({
   return (
     <div className="space-y-4">
       {/* Profile Card */}
-      <div className="p-4 rounded-3xl bg-white/90 shadow-xs border border-stone-200/80 flex items-center gap-3.5">
-        <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-100 to-orange-200 ring-2 ring-orange-400 ring-offset-2 ring-offset-[#FAF7F0] flex items-center justify-center shrink-0">
-          <HandDrawnUser size={26} washColor="#BAE6FD" strokeColor="#2B2B2B" />
+      <div className="p-4 rounded-3xl bg-white/90 shadow-xs border border-stone-200/80 space-y-3">
+        <div className="flex items-center gap-3.5">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-100 to-orange-200 ring-2 ring-orange-400 ring-offset-2 ring-offset-[#FAF7F0] flex items-center justify-center shrink-0">
+            <HandDrawnUser size={26} washColor="#BAE6FD" strokeColor="#2B2B2B" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mb-1">
+              Active Learner
+            </span>
+            <h3 className="font-display font-bold text-sm text-[#2B2B2B] truncate">{userEmail}</h3>
+            <p className="text-xs text-stone-500 font-medium">Studying {targetLanguage}</p>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mb-1">
-            Active Learner
-          </span>
-          <h3 className="font-display font-bold text-sm text-[#2B2B2B] truncate">{userEmail}</h3>
-          <p className="text-xs text-stone-500 font-medium">Studying {targetLanguage}</p>
-        </div>
+
+        {/* Onboarding Profile Snapshot */}
+        {(learnerProfile?.priorStudy ||
+          learnerProfile?.ageRange ||
+          learnerProfile?.comfortLevel ||
+          learnerProfile?.firstWordLearned) && (
+          <div className="pt-2.5 border-t border-stone-100 grid grid-cols-2 gap-2 text-[11px]">
+            {learnerProfile.ageRange && (
+              <div className="p-2 rounded-xl bg-[#FAF7F0]">
+                <span className="text-stone-400 block text-[9px] uppercase font-bold">Age Bracket</span>
+                <span className="font-bold text-[#2B2B2B]">{learnerProfile.ageRange}</span>
+              </div>
+            )}
+            {learnerProfile.priorStudy && (
+              <div className="p-2 rounded-xl bg-[#FAF7F0]">
+                <span className="text-stone-400 block text-[9px] uppercase font-bold">Background</span>
+                <span className="font-bold text-[#2B2B2B] truncate block">{learnerProfile.priorStudy}</span>
+              </div>
+            )}
+            {learnerProfile.firstWordLearned && (
+              <div className="p-2 rounded-xl bg-[#FAF7F0]">
+                <span className="text-stone-400 block text-[9px] uppercase font-bold">First Word Learned</span>
+                <span className="font-bold text-emerald-800">{learnerProfile.firstWordLearned}</span>
+              </div>
+            )}
+            {learnerProfile.comfortLevel && (
+              <div className="p-2 rounded-xl bg-[#FAF7F0]">
+                <span className="text-stone-400 block text-[9px] uppercase font-bold">Comfort Level</span>
+                <span className="font-bold text-[#2B2B2B] truncate block">{learnerProfile.comfortLevel}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* CEFR Level & OPI Calibration */}
@@ -67,7 +104,7 @@ export const MeTab: React.FC<MeTabProps> = ({
               Level {currentLevel}
             </span>
             <span className="text-xs text-[#2B2B2B]/75 block font-medium">
-              Calibrated from oral proficiency checks
+              Calibrated from spoken assessment
             </span>
           </div>
 

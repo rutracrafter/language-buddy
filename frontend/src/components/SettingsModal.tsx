@@ -5,6 +5,7 @@ import { HandDrawnSettings, HandDrawnCross, HandDrawnCheck, HandDrawnHeart } fro
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onRestartOnboarding?: () => void;
 }
 
 const COMMON_INTERESTS = [
@@ -20,7 +21,11 @@ const COMMON_INTERESTS = [
   'History & Culture',
 ];
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({
+  isOpen,
+  onClose,
+  onRestartOnboarding,
+}) => {
   const { profile, updateProfile } = useAuth();
 
   const [speechRate, setSpeechRate] = useState<number>(profile?.preferences?.speechRate ?? 1.0);
@@ -196,6 +201,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               </button>
             </form>
           </div>
+
+          {/* Onboarding Restart Option */}
+          {onRestartOnboarding && (
+            <div className="p-3.5 rounded-2xl bg-white/90 border border-stone-200/80 shadow-2xs flex items-center justify-between">
+              <div>
+                <span className="font-bold text-xs text-[#2B2B2B] block">Restart Onboarding Flow</span>
+                <span className="text-[11px] text-stone-500 font-medium">Replay welcome, level check & feel-out call</span>
+              </div>
+              <button
+                type="button"
+                onClick={onRestartOnboarding}
+                className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-950 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+              >
+                Restart
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="mt-5 pt-3 border-t border-stone-200 flex items-center justify-between">

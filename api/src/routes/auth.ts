@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { getCollections } from '../db.js';
 import { createSession, destroySession, requireAuth, SESSION_COOKIE_NAME } from '../middleware/auth.js';
-import { LearnerProfile } from '../types.js';
+import { LearnerProfile, CEFRLevel } from '../types.js';
+import { createInitialFsrsCard } from '../services/fsrs.js';
 
 export const authRouter = Router();
 
@@ -12,6 +13,20 @@ const signupSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters long'),
   nativeLanguage: z.string().trim().min(1).default('English'),
   targetLanguage: z.string().trim().min(1).default('Spanish'),
+  ageRange: z.string().optional(),
+  priorStudy: z.string().optional(),
+  comfortLevel: z.string().optional(),
+  initialLevel: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']).optional().default('A1'),
+  firstWordLearned: z.string().optional(),
+  firstWordGloss: z.string().optional(),
+  onboardingTranscript: z
+    .array(
+      z.object({
+        speaker: z.enum(['learner', 'agent']),
+        text: z.string(),
+      })
+    )
+    .optional(),
 });
 
 const loginSchema = z.object({
@@ -27,7 +42,20 @@ authRouter.post('/signup', async (req: Request, res: Response) => {
       return;
     }
 
-    const { email, password, nativeLanguage, targetLanguage } = parseResult.data;
+    const {
+      email,
+      password,
+      nativeLanguage,
+      targetLanguage,
+      ageRange,
+      priorStudy,
+      comfortLevel,
+      initialLevel,
+      firstWordLearned,
+      firstWordGloss,
+      onboardingTranscript,
+    } = parseResult.data;
+
     const collections = getCollections();
 
     const existingUser = await collections.users.findOne({ email });
@@ -51,23 +79,64 @@ authRouter.post('/signup', async (req: Request, res: Response) => {
       nativeLanguage,
       targetLanguage,
       level: {
-        overall: 'A1',
-        speaking: 'A1',
-        listening: 'A1',
+        overall: initialLevel,
+        speaking: initialLevel,
+        listening: initialLevel,
       },
-      levelConfidence: 0.1,
+      levelConfidence: initialLevel !== 'A1' ? 0.35 : 0.2,
       placementCompletedAt: null,
       interests: [],
       preferences: {
         speechRate: 1.0,
         nativeLangSupport: 'med',
-        defaultSessionMinutes: 10,
       },
+      ageRange,
+      priorStudy,
+      comfortLevel,
+      firstWordLearned,
       createdAt: now,
       updatedAt: now,
     };
 
     await collections.profiles.insertOne(newProfile);
+
+    // If a first word was learned during onboarding, persist to items collection
+    if (firstWordLearned) {
+      await collections.items.insertOne({
+        userId: userResult.insertedId,
+        type: 'vocab',
+        text: firstWordLearned,
+        gloss: firstWordGloss || 'First word learned',
+        cefrLevel: initialLevel,
+        topicTags: ['onboarding_first_word'],
+        stage: 'recognition',
+        recognition: createInitialFsrsCard(),
+        production: null,
+        createdAt: now,
+      });
+    }
+
+    // If an onboarding transcript was recorded, record the session in history
+    if (onboardingTranscript && onboardingTranscript.length > 0) {
+      await collections.sessions.insertOne({
+        userId: userResult.insertedId,
+        type: 'practice',
+        languages: { native: nativeLanguage, target: targetLanguage },
+        targetMinutes: 5,
+        startedAt: now,
+        endedAt: now,
+        plan: { topic: 'Introductory feel-out conversation with Buddy' },
+        transcript: onboardingTranscript.map((t) => ({
+          speaker: t.speaker,
+          text: t.text,
+          lang: 'auto',
+          at: now,
+        })),
+        toolEvents: [],
+        analysisStatus: 'done',
+      });
+    }
+
     await createSession(userResult.insertedId, res);
 
     res.status(201).json({

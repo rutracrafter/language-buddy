@@ -25,6 +25,10 @@ export interface LearnerProfile {
   placementCompletedAt: string | null;
   interests: string[];
   preferences: LearnerPreferences;
+  ageRange?: string;
+  priorStudy?: string;
+  comfortLevel?: string;
+  firstWordLearned?: string;
   createdAt?: string;
   updatedAt?: string;
 }
